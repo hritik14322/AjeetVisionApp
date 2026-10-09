@@ -40,28 +40,22 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'nav_notifications',
 };
 
-// Initialize LocalStorage with mock defaults if empty
+// Initialize LocalStorage: clean legacy 'Hritik Kumar' mock data and ensure clean slate
 const initStorage = () => {
-  if (!localStorage.getItem(STORAGE_KEYS.CURRENT_USER)) {
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(INITIAL_USER));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.REWARD_STATE)) {
-    localStorage.setItem(STORAGE_KEYS.REWARD_STATE, JSON.stringify(INITIAL_REWARD_STATE));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.PURCHASES)) {
-    localStorage.setItem(STORAGE_KEYS.PURCHASES, JSON.stringify(PURCHASES_DATA));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS)) {
-    localStorage.setItem(STORAGE_KEYS.LOYALTY_PTS, JSON.stringify(950));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.LOYALTY_TXNS)) {
-    localStorage.setItem(STORAGE_KEYS.LOYALTY_TXNS, JSON.stringify(LOYALTY_TRANSACTIONS));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.WISHLIST)) {
-    localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(["prod-1", "prod-7"]));
-  }
-  if (!localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS)) {
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(INITIAL_NOTIFICATIONS));
+  const existingUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+  if (existingUser) {
+    try {
+      const parsed = JSON.parse(existingUser);
+      if (parsed && (parsed.name === 'Hritik Kumar' || parsed.email === 'hritik.kumar@example.com')) {
+        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
+        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+        localStorage.removeItem(STORAGE_KEYS.PURCHASES);
+        localStorage.removeItem(STORAGE_KEYS.LOYALTY_PTS);
+        localStorage.removeItem(STORAGE_KEYS.LOYALTY_TXNS);
+        localStorage.removeItem(STORAGE_KEYS.REWARD_STATE);
+        localStorage.removeItem(STORAGE_KEYS.WISHLIST);
+      }
+    } catch (e) {}
   }
 };
 
@@ -74,70 +68,105 @@ export const apiService = {
 
   // ---------------- AUTH SERVICES ----------------
   async signUp({ name, mobile, email, password }) {
-    await delay(600);
     if (!name || !name.trim()) throw new Error('Please enter your full name');
     const cleanMobile = (mobile || '').replace(/\D/g, '');
     if (cleanMobile.length < 10) throw new Error('Please enter a valid 10-digit mobile number');
     if (!email || !email.includes('@')) throw new Error('Please enter a valid email address');
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
 
-    const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-    const existing = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-    if (existing) {
-      throw new Error('An account with this email address already exists. Please sign in.');
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: name.trim(),
+          mobile: `+91 ${cleanMobile.slice(-10)}`,
+          email: email.trim().toLowerCase(),
+          password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Registration failed');
+      }
+      const token = data.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(data));
+      return { success: true, token, user: data };
+    } catch (err) {
+      if (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch')) {
+        throw err;
+      }
+      // Offline fallback
+      await delay(500);
+      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+      const existing = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
+      if (existing) {
+        throw new Error('An account with this email address already exists. Please sign in.');
+      }
+      const newUser = {
+        name: name.trim(),
+        mobile: `+91 ${cleanMobile.slice(-10)}`,
+        rawMobile: cleanMobile.slice(-10),
+        email: email.trim().toLowerCase(),
+        password,
+        isVerified: true,
+        avatar: '',
+        isVipMember: false,
+        loyaltyPoints: 0,
+      };
+      usersDb.push(newUser);
+      localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+      const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
+      return { success: true, token, user: newUser };
     }
-
-    const newUser = {
-      name: name.trim(),
-      mobile: `+91 ${cleanMobile.slice(-10)}`,
-      rawMobile: cleanMobile.slice(-10),
-      email: email.trim().toLowerCase(),
-      password, // stored locally for mock validation
-      isVerified: true,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80',
-      isVipMember: false,
-    };
-
-    usersDb.push(newUser);
-    localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
-
-    const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
-
-    return { success: true, token, user: newUser };
   },
 
-  async signIn({ email, password }) {
-    await delay(600);
+  async signIn({ email, password, fallbackUser }) {
     if (!email || !email.includes('@')) throw new Error('Please enter a valid email address');
     if (!password) throw new Error('Please enter your password');
 
-    const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-    let user = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-
-    if (!user) {
-      // Allow fallback default login for quick testing
-      const currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
-      if (currentUser.email && currentUser.email.toLowerCase() === email.trim().toLowerCase()) {
-        user = currentUser;
-      } else {
-        // Create demo account for seamless signin
-        user = {
-          name: email.split('@')[0].replace(/[^a-zA-Z]/g, ' ').toUpperCase() || 'Customer',
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           email: email.trim().toLowerCase(),
-          mobile: '+91 9876543210',
-          isVerified: true,
-          isVipMember: false,
-        };
+          password,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid email or password');
       }
+      const token = data.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(data));
+      return { success: true, token, user: data };
+    } catch (err) {
+      if (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch')) {
+        throw err;
+      }
+      // Offline / local fallback
+      await delay(500);
+      if (fallbackUser) {
+        const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(fallbackUser));
+        return { success: true, token, user: fallbackUser };
+      }
+      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+      const user = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
+      if (!user) {
+        throw new Error('Account not found. Please check your credentials or Sign Up.');
+      }
+      const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
+      return { success: true, token, user };
     }
-
-    const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-
-    return { success: true, token, user };
   },
 
   async forgotPassword(email) {
@@ -187,24 +216,34 @@ export const apiService = {
   },
 
   async getCurrentUser() {
-    await delay(300);
     const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
     if (!token) return null;
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || 'null');
-    return user;
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    if (!userStr) return null;
+    try {
+      const user = JSON.parse(userStr);
+      if (user && user.name !== 'Hritik Kumar' && user.email !== 'hritik.kumar@example.com') {
+        return user;
+      }
+    } catch (e) {}
+    return null;
   },
 
   async updateProfile(updates) {
-    await delay(500);
-    const currentUser = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(300);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const currentUser = userStr ? JSON.parse(userStr) : {};
     const updated = { ...currentUser, ...updates };
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(updated));
     return updated;
   },
 
   async logout() {
-    await delay(300);
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
     localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
     return { success: true };
   },
 
@@ -291,8 +330,10 @@ export const apiService = {
   },
 
   async linkLoyaltyCard(cardNumber) {
-    await delay(500);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(300);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!user) throw new Error('Please sign in to link your loyalty card.');
     if (user.loyaltyCardNumber) {
       throw new Error('Loyalty card is already linked to this account.');
     }
@@ -303,8 +344,8 @@ export const apiService = {
 
   // ---------------- PURCHASES & INVOICE SERVICES ----------------
   async getPurchases(statusFilter = 'all') {
-    await delay(400);
-    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || JSON.stringify(PURCHASES_DATA));
+    await delay(200);
+    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || '[]');
     let filtered = purchases;
     if (statusFilter !== 'all') {
       filtered = purchases.filter((p) => p.status === statusFilter);
@@ -321,29 +362,30 @@ export const apiService = {
   },
 
   async getInvoiceDetails(invoiceNo) {
-    await delay(350);
-    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || JSON.stringify(PURCHASES_DATA));
+    await delay(200);
+    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || '[]');
     const invoice = purchases.find((p) => p.invoiceNo === invoiceNo);
     if (!invoice) {
       throw new Error(`Invoice ${invoiceNo} not found`);
     }
 
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : {};
 
     return {
       ...invoice,
       customer: {
-        name: user.name,
-        mobile: user.mobile,
-        address: user.addresses[0]?.fullAddress || 'Obra, Sonebhadra, UP',
+        name: user.name || 'Customer',
+        mobile: user.mobile || '',
+        address: user.addresses?.[0]?.fullAddress || 'Obra, Bihar',
       },
       showroom: SHOWROOM_INFO,
     };
   },
 
   async payOutstandingAmount(invoiceNo, paymentAmount) {
-    await delay(600);
-    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || JSON.stringify(PURCHASES_DATA));
+    await delay(500);
+    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || '[]');
     const invoiceIndex = purchases.findIndex((p) => p.invoiceNo === invoiceNo);
     if (invoiceIndex === -1) throw new Error('Invoice not found');
 
@@ -376,13 +418,14 @@ export const apiService = {
 
   // ---------------- VIP CLUB SERVICES ----------------
   async getVipClubDetails() {
-    await delay(350);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(200);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : null;
     return {
       membershipPrice: 499,
       membershipDuration: '1 Year',
-      isVipMember: user.isVipMember || false,
-      vipExpiryDate: user.vipExpiryDate || '15 Sep 2027',
+      isVipMember: user?.isVipMember || false,
+      vipExpiryDate: user?.vipExpiryDate || null,
       benefits: VIP_CLUB_BENEFITS,
       terms: [
         'VIP membership is valid for 1 full year from date of payment.',
@@ -394,8 +437,10 @@ export const apiService = {
   },
 
   async joinVipClub() {
-    await delay(700);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(500);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : null;
+    if (!user) throw new Error('Please sign in to join VIP Club.');
     user.isVipMember = true;
     const expiry = new Date();
     expiry.setFullYear(expiry.getFullYear() + 1);
@@ -403,7 +448,7 @@ export const apiService = {
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
 
     // Add bonus loyalty points
-    let pts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '950');
+    let pts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '0');
     pts += 500;
     localStorage.setItem(STORAGE_KEYS.LOYALTY_PTS, JSON.stringify(pts));
 
@@ -416,8 +461,20 @@ export const apiService = {
 
   // ---------------- LOYALTY CARD & POINTS ----------------
   async getLoyaltyCardDetails() {
-    await delay(350);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(200);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : null;
+
+    if (!user) {
+      return {
+        cardNumber: 'Link or Register at Showroom',
+        qrCodeData: 'NAV-GUEST',
+        points: 0,
+        transactions: [],
+        earnedTotal: 0,
+        redeemedTotal: 0,
+      };
+    }
 
     // Check if admin updated points or card number in ADMIN_SYNC_CUSTOMERS
     const adminCustomers = JSON.parse(localStorage.getItem('ADMIN_SYNC_CUSTOMERS') || '[]');
@@ -427,10 +484,10 @@ export const apiService = {
       (c.name && c.name.toLowerCase() === user.name.toLowerCase())
     );
 
-    const points = matchedCustomer ? matchedCustomer.points : JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '950');
-    const cardNumber = matchedCustomer?.loyaltyCardNumber || user.loyaltyCardNumber || '5422 8901 2345 6789';
+    const points = matchedCustomer ? matchedCustomer.points : JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '0');
+    const cardNumber = matchedCustomer?.loyaltyCardNumber || user.loyaltyCardNumber || null;
 
-    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_TXNS) || JSON.stringify(LOYALTY_TRANSACTIONS));
+    let transactions = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_TXNS) || '[]');
     if (matchedCustomer && matchedCustomer.pointHistory && matchedCustomer.pointHistory.length > 0) {
       const adminTxns = matchedCustomer.pointHistory.map((ph, idx) => ({
         id: `admin-pts-${idx}`,
@@ -622,11 +679,12 @@ export const apiService = {
 
   // ---------------- BIRTHDAY REWARD ----------------
   async getBirthdayReward() {
-    await delay(300);
-    const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || JSON.stringify(INITIAL_USER));
+    await delay(200);
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    const user = userStr ? JSON.parse(userStr) : null;
     return {
-      isEligible: true,
-      dob: user.dateOfBirth,
+      isEligible: !!user,
+      dob: user?.dateOfBirth || null,
       couponCode: 'BDAY-AJEET-1500',
       discountAmount: 1500,
       minPurchase: 10000,

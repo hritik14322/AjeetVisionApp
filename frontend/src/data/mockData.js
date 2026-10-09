@@ -14,42 +14,12 @@ export const SHOWROOM_INFO = {
   googleMapsUrl: "https://maps.google.com/?q=New+Ajeet+Vision+Obra",
 };
 
-export const INITIAL_USER = {
-  id: "USR-98765",
-  name: "Hritik Kumar",
-  mobile: "+91 98765 43210",
-  rawMobile: "9876543210",
-  email: "hritik.kumar@example.com",
-  avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=300&q=80",
-  loyaltyCardNumber: null, // User has not linked a physical card yet
-  isVerified: true,
-  isVipMember: false,
-  vipExpiryDate: null,
-  dateOfBirth: "1998-10-15",
-  addresses: [
-    {
-      id: "addr-1",
-      type: "Home",
-      tag: "Default",
-      fullAddress: "Flat 402, Shanti Vihar Colony, Near Gayatri Mandir, Obra, UP - 231219",
-      landmark: "Opposite SBI Branch",
-      isDefault: true,
-    },
-    {
-      id: "addr-2",
-      type: "Office",
-      tag: "Work",
-      fullAddress: "Shop 12, Commercial Complex, Sector 2, Obra, UP - 231219",
-      landmark: "Near Main Market",
-      isDefault: false,
-    }
-  ]
-};
+export const INITIAL_USER = null;
 
 export const REWARD_TARGET = 100000; // ₹1,00,000 target
 
 export const INITIAL_REWARD_STATE = {
-  currentSpend: 72500,
+  currentSpend: 0,
   targetSpend: REWARD_TARGET,
   isUnlocked: false,
   hasSpun: false,

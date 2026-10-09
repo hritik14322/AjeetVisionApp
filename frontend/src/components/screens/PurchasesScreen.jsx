@@ -15,7 +15,7 @@ export const PurchasesScreen = () => {
   const [activeTab, setActiveTab] = useState('all'); // 'all', 'ongoing', 'completed'
   const [purchasesData, setPurchasesData] = useState({
     purchases: [],
-    totalOutstanding: 47500,
+    totalOutstanding: 0,
   });
   const [loading, setLoading] = useState(true);
 

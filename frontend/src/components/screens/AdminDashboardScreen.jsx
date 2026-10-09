@@ -121,108 +121,20 @@ const CustomersSection = () => {
   const [isEditingCard, setIsEditingCard] = useState(false);
 
   const [customers, setCustomers] = useState(() => {
-    const defaultList = [
-      {
-        id: 'c-hritik', name: 'Hritik Kumar', mobile: '98765-43210', email: 'hritik@email.com',
-        points: 950, vip: true, outstanding: 0, spent: 72500,
-        rewardProgress: 72, joinedDate: 'Oct 2026', loyaltyCardNumber: 'NAV-987654',
-        purchases: [
-          { id: 'NAV-2026-001', date: '7 Oct 2026', items: 'Godrej AC 1.5 Ton, Smart TV', amount: 72500, paid: 72500, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '7 Oct 2026', type: 'earn', pts: 950, reason: 'Showroom signup & purchase bonus', by: 'System' },
-        ],
-      },
-      {
-        id: 'c1', name: 'Rahul Sharma',  mobile: '98765-43210', email: 'rahul@email.com',
-        points: 450, vip: true, outstanding: 0, spent: 245000,
-        rewardProgress: 72, joinedDate: 'Jan 2024',
-        purchases: [
-          { id: 'NAV-001', date: '12 Sep 2026', items: 'Samsung 55" TV', amount: 45000, paid: 45000, status: 'Paid' },
-          { id: 'NAV-008', date: '3 Jun 2026',  items: 'iPhone 15, Earbuds', amount: 89000, paid: 75000, status: 'EMI' },
-          { id: 'NAV-015', date: '18 Jan 2026', items: 'LG Fridge 310L', amount: 28000, paid: 28000, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '12 Sep 2026', type: 'earn',   pts: 450, reason: 'Purchase NAV-001', by: 'System' },
-          { date: '3 Jun 2026',  type: 'manual', pts: 100, reason: 'Bonus – Festive gift', by: 'Admin' },
-          { date: '18 Jan 2026', type: 'earn',   pts: 280, reason: 'Purchase NAV-015', by: 'System' },
-        ],
-      },
-      {
-        id: 'c2', name: 'Sneha Gupta',   mobile: '91234-56789', email: 'sneha@email.com',
-        points: 280, vip: true, outstanding: 12000, spent: 185000,
-        rewardProgress: 55, joinedDate: 'Mar 2024',
-        purchases: [
-          { id: 'NAV-002', date: '5 Oct 2026',  items: 'AC 1.5 Ton Split', amount: 42000, paid: 30000, status: 'EMI' },
-          { id: 'NAV-009', date: '14 Jul 2026', items: 'Washing Machine', amount: 32000, paid: 32000, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '5 Oct 2026',  type: 'earn',   pts: 420, reason: 'Purchase NAV-002', by: 'System' },
-          { date: '14 Jul 2026', type: 'earn',   pts: 320, reason: 'Purchase NAV-009', by: 'System' },
-          { date: '14 Jul 2026', type: 'redeem', pts: -200, reason: 'Points redeemed', by: 'System' },
-        ],
-      },
-      {
-        id: 'c3', name: 'Amit Patel',    mobile: '97654-32109', email: 'amit@email.com',
-        points: 120, vip: false, outstanding: 8500, spent: 78000,
-        rewardProgress: 20, joinedDate: 'Aug 2024',
-        purchases: [
-          { id: 'NAV-003', date: '1 Oct 2026',  items: 'Ceiling Fan x3', amount: 12000, paid: 3500, status: 'Pending' },
-          { id: 'NAV-010', date: '20 Aug 2026', items: 'Mixer Grinder', amount: 4500, paid: 4500, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '1 Oct 2026',  type: 'earn', pts: 120, reason: 'Purchase NAV-003', by: 'System' },
-        ],
-      },
-      {
-        id: 'c4', name: 'Priya Singh',   mobile: '88888-77777', email: 'priya@email.com',
-        points: 890, vip: true, outstanding: 0, spent: 320000,
-        rewardProgress: 100, joinedDate: 'Nov 2023',
-        purchases: [
-          { id: 'NAV-004', date: '22 Sep 2026', items: 'OLED TV 65"', amount: 95000, paid: 95000, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '22 Sep 2026', type: 'earn',   pts: 950, reason: 'Purchase NAV-004', by: 'System' },
-          { date: '15 Sep 2026', type: 'manual', pts: 200, reason: 'VIP Bonus', by: 'Admin' },
-        ],
-      },
-      {
-        id: 'c5', name: 'Vikram Das',    mobile: '99900-11122', email: 'vikram@email.com',
-        points: 60,  vip: false, outstanding: 3200, spent: 42000,
-        rewardProgress: 10, joinedDate: 'May 2025',
-        purchases: [
-          { id: 'NAV-005', date: '30 Sep 2026', items: 'Air Cooler', amount: 8500, paid: 5300, status: 'Pending' },
-        ],
-        pointHistory: [
-          { date: '30 Sep 2026', type: 'earn', pts: 85, reason: 'Purchase NAV-005', by: 'System' },
-        ],
-      },
-      {
-        id: 'c6', name: 'Sunita Rao',    mobile: '80001-23456', email: 'sunita@email.com',
-        points: 310, vip: false, outstanding: 0, spent: 112000,
-        rewardProgress: 32, joinedDate: 'Feb 2025',
-        purchases: [
-          { id: 'NAV-006', date: '10 Sep 2026', items: 'Geyser + Chimney', amount: 18000, paid: 18000, status: 'Paid' },
-          { id: 'NAV-011', date: '5 Apr 2026',  items: 'Microwave', amount: 9500, paid: 9500, status: 'Paid' },
-        ],
-        pointHistory: [
-          { date: '10 Sep 2026', type: 'earn', pts: 180, reason: 'Purchase NAV-006', by: 'System' },
-          { date: '5 Apr 2026',  type: 'earn', pts: 95,  reason: 'Purchase NAV-011', by: 'System' },
-        ],
-      },
-    ];
-
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
-    let list = saved ? JSON.parse(saved) : defaultList;
+    let list = saved ? JSON.parse(saved) : [];
 
-    // Retrieve active logged in user profile & registered users db
+    // Filter out any stale 'Hritik Kumar' or mock customer data
+    list = list.filter(c => c && c.id !== 'c-hritik' && c.name !== 'Hritik Kumar' && c.email !== 'hritik@email.com' && c.email !== 'hritik.kumar@example.com');
+
+    // Retrieve active registered users from nav_users_db
     const activeUser = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
     const dbUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
 
     const extraUsers = [];
-    if (activeUser && activeUser.name) extraUsers.push(activeUser);
+    if (activeUser && activeUser.name && activeUser.name !== 'Hritik Kumar') extraUsers.push(activeUser);
     dbUsers.forEach(u => {
-      if (u && u.name && !extraUsers.some(x => (x.email && x.email === u.email) || (x.mobile && x.mobile === u.mobile))) {
+      if (u && u.name && u.name !== 'Hritik Kumar' && !extraUsers.some(x => (x.email && x.email === u.email) || (x.mobile && x.mobile === u.mobile))) {
         extraUsers.push(u);
       }
     });
@@ -238,21 +150,17 @@ const CustomersSection = () => {
         list.unshift({
           id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
           name: u.name,
-          mobile: u.mobile || '98765-43210',
-          email: u.email || 'customer@email.com',
-          points: u.loyaltyPoints || 950,
+          mobile: u.mobile || '',
+          email: u.email || '',
+          points: u.loyaltyPoints || 0,
           vip: u.isVipMember || false,
           outstanding: 0,
-          spent: 72500,
-          rewardProgress: 72,
-          joinedDate: 'Oct 2026',
+          spent: 0,
+          rewardProgress: 0,
+          joinedDate: 'New Customer',
           loyaltyCardNumber: u.loyaltyCardNumber || '',
-          purchases: [
-            { id: 'NAV-2026-001', date: '7 Oct 2026', items: 'Godrej AC 1.5 Ton, Smart TV', amount: 72500, paid: 72500, status: 'Paid' },
-          ],
-          pointHistory: [
-            { date: '7 Oct 2026', type: 'earn', pts: 950, reason: 'Account creation & purchase bonus', by: 'System' },
-          ],
+          purchases: [],
+          pointHistory: [],
         });
       }
     });

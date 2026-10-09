@@ -113,21 +113,30 @@ export const Header = () => {
             )}
           </button>
 
-          {/* Profile / VIP badge desktop */}
-          <button
-            onClick={() => navigateTo('profile')}
-            className="hidden sm:flex items-center gap-2 pl-2 pr-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-800 transition"
-          >
-            <div className="w-6 h-6 rounded-full overflow-hidden bg-brand-red text-white flex items-center justify-center text-[11px] font-bold">
-              {currentUser?.avatar ? (
-                <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
-              ) : (
-                'HK'
-              )}
-            </div>
-            <span>{currentUser?.name?.split(' ')[0] || 'Profile'}</span>
-            {isVip && <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />}
-          </button>
+          {/* Profile / VIP badge desktop or Sign In button */}
+          {currentUser ? (
+            <button
+              onClick={() => navigateTo('profile')}
+              className="hidden sm:flex items-center gap-2 pl-2 pr-3 py-1 bg-gray-100 hover:bg-gray-200 rounded-full text-xs font-semibold text-gray-800 transition"
+            >
+              <div className="w-6 h-6 rounded-full overflow-hidden bg-brand-red text-white flex items-center justify-center text-[11px] font-bold">
+                {currentUser?.avatar ? (
+                  <img src={currentUser.avatar} alt="User" className="w-full h-full object-cover" />
+                ) : (
+                  currentUser?.name ? currentUser.name.slice(0, 2).toUpperCase() : 'ME'
+                )}
+              </div>
+              <span>{currentUser?.name?.split(' ')[0] || 'Profile'}</span>
+              {isVip && <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />}
+            </button>
+          ) : (
+            <button
+              onClick={() => navigateTo('login')}
+              className="hidden sm:flex items-center gap-1.5 px-4 py-1.5 bg-brand-red hover:bg-red-700 text-white rounded-full text-xs font-bold transition shadow-xs"
+            >
+              <span>Sign In / Sign Up</span>
+            </button>
+          )}
         </div>
       </div>
     </header>

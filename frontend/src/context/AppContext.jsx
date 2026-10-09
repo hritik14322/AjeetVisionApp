@@ -4,36 +4,54 @@ import { apiService } from '../services/api';
 const AppContext = createContext(null);
 
 export const AppProvider = ({ children }) => {
-  // Parse initial view from URL (e.g. /admin_login)
-  const initialPath = window.location.pathname.replace(/^\/+/, '') || 'home';
-  const initialView = ['splash', 'login', 'otp', 'home', 'reward_unlocked', 'categories', 'category_products', 'product_detail', 'purchases', 'bill_details', 'vip_club', 'loyalty_card', 'wishlist', 'daily_deals', 'notifications', 'profile', 'admin_login', 'admin_dashboard'].includes(initialPath) ? initialPath : 'home';
+  // Parse initial view from URL (e.g. /admin_login) or direct link
+  const getInitialView = () => {
+    const initialPath = window.location.pathname.replace(/^\/+/, '') || '';
+    if (initialPath === 'admin_login' || initialPath === 'admin_dashboard') {
+      return initialPath;
+    }
+    const token = localStorage.getItem('nav_auth_token');
+    const user = localStorage.getItem('nav_user_profile');
+    if (token && user) {
+      try {
+        const u = JSON.parse(user);
+        if (u && u.name && u.name !== 'Hritik Kumar' && u.email !== 'hritik.kumar@example.com') {
+          return initialPath && ['home', 'categories', 'category_products', 'product_detail', 'purchases', 'bill_details', 'vip_club', 'loyalty_card', 'wishlist', 'daily_deals', 'notifications', 'profile'].includes(initialPath) ? initialPath : 'home';
+        }
+      } catch (e) {}
+    }
+    // New or unauthenticated visitor opening via link: SHOW SIGN IN / SIGN UP
+    return 'login';
+  };
+
+  const initialView = getInitialView();
 
   // Navigation & View
   const [currentView, setCurrentView] = useState(initialView);
   const [viewHistory, setViewHistory] = useState([initialView]);
   const [selectedCategory, setSelectedCategory] = useState('television');
   const [selectedProductId, setSelectedProductId] = useState('prod-1');
-  const [selectedInvoiceNo, setSelectedInvoiceNo] = useState('NAV20260915001');
+  const [selectedInvoiceNo, setSelectedInvoiceNo] = useState('');
 
-  // Auth & User
+  // Auth & User - start as unauthenticated for clean customer experience
   const [currentUser, setCurrentUser] = useState(null);
-  const [isAuthenticated, setIsAuthenticated] = useState(true); // default true for seamless showroom browsing
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
   const [pendingOtpMobile, setPendingOtpMobile] = useState('');
 
-  // Rewards
+  // Rewards - fresh start with 0 spend
   const [rewardJourney, setRewardJourney] = useState({
-    currentSpend: 72500,
+    currentSpend: 0,
     targetSpend: 100000,
-    percentage: 72,
-    remainingAmount: 27500,
+    percentage: 0,
+    remainingAmount: 100000,
     isUnlocked: false,
     hasSpun: false,
     claimedReward: null,
   });
 
   // Wishlist
-  const [wishlistIds, setWishlistIds] = useState(['prod-1', 'prod-7']);
+  const [wishlistIds, setWishlistIds] = useState([]);
 
   // Modals
   const [isEmiModalOpen, setIsEmiModalOpen] = useState(false);
@@ -47,7 +65,7 @@ export const AppProvider = ({ children }) => {
   const [isJoinVipModalOpen, setIsJoinVipModalOpen] = useState(false);
 
   // Notifications
-  const [unreadNotifCount, setUnreadNotifCount] = useState(2);
+  const [unreadNotifCount, setUnreadNotifCount] = useState(0);
 
   // Toasts
   const [toasts, setToasts] = useState([]);
@@ -69,20 +87,22 @@ export const AppProvider = ({ children }) => {
     const loadAppData = async () => {
       try {
         setAuthLoading(true);
-        // Check splash flag or auth
         const user = await apiService.getCurrentUser();
-        if (user) {
+        if (user && user.name !== 'Hritik Kumar' && user.email !== 'hritik.kumar@example.com') {
           setCurrentUser(user);
           setIsAuthenticated(true);
+        } else {
+          setCurrentUser(null);
+          setIsAuthenticated(false);
         }
         const rewards = await apiService.getRewardJourney();
         setRewardJourney(rewards);
 
         const wishlist = await apiService.getWishlist();
-        setWishlistIds(wishlist.map(p => p.id));
+        setWishlistIds(wishlist ? wishlist.map(p => p.id) : []);
 
         const notifs = await apiService.getNotifications();
-        setUnreadNotifCount(notifs.unreadCount);
+        setUnreadNotifCount(notifs?.unreadCount || 0);
       } catch (err) {
         console.error('Error loading initial app data:', err);
       } finally {
@@ -175,6 +195,7 @@ export const AppProvider = ({ children }) => {
 
   const handleLogout = async () => {
     await apiService.logout();
+    setCurrentUser(null);
     setIsAuthenticated(false);
     showToast('You have been logged out safely', 'info');
     navigateTo('login');
