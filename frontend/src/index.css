@@ -1,0 +1,86 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-red: #E51926;
+  --color-brand-darkRed: #C4121F;
+  --color-brand-lightRed: #FEECEE;
+  --color-brand-black: #121212;
+  --color-brand-darkGray: #1E1E1E;
+  --color-brand-cardGray: #262626;
+  --color-brand-borderGray: #E5E7EB;
+  --color-brand-textGray: #6B7280;
+  --color-brand-gold: #FFB800;
+  --color-brand-goldDark: #D97706;
+  --color-brand-goldLight: #FEF3C7;
+
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+@layer base {
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #F7F8FA;
+    color: #1A1A1A;
+    margin: 0;
+    padding: 0;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom scrollbar for modern feel */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Gold Gradient Effects */
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #FFF6E5 0%, #FFE4B5 50%, #F5D061 100%);
+}
+
+.gold-luxury-card {
+  background: linear-gradient(135deg, #1C1917 0%, #292524 60%, #44403C 100%);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+}
+
+.gold-text-shimmer {
+  background: linear-gradient(90deg, #D97706 0%, #F59E0B 50%, #D97706 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Smooth wheel spin transition */
+.wheel-container {
+  box-shadow: 0 0 35px rgba(229, 25, 38, 0.35), inset 0 0 15px rgba(0,0,0,0.4);
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.05); opacity: 0.9; }
+}
+
+.animate-pulse-subtle {
+  animation: pulse-subtle 2s infinite ease-in-out;
+}
