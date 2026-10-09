@@ -12,10 +12,16 @@ connectDB();
 
 const app = express();
 
+const path = require('path');
+const fs = require('fs');
+
 // Middlewares
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginResourcePolicy: false,
+}));
 app.use(cors({
-  origin: process.env.CLIENT_URL || 'http://localhost:3000',
+  origin: true,
   credentials: true,
 }));
 app.use(express.json());
@@ -26,7 +32,7 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
-// Routes
+// API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/products', require('./routes/productRoutes'));
@@ -38,9 +44,27 @@ app.use('/api/wishlist', require('./routes/wishlistRoutes'));
 app.use('/api/offers', require('./routes/offerRoutes'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboardRoutes'));
 
-app.get('/', (req, res) => {
-  res.send('New Ajeet Vision API is running...');
-});
+// Serve React Frontend static assets in Deployment
+const frontendDistPath = path.join(__dirname, '../frontend/dist');
+const rootDistPath = path.join(__dirname, '../dist');
+
+if (fs.existsSync(frontendDistPath)) {
+  app.use(express.static(frontendDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(frontendDistPath, 'index.html'));
+  });
+} else if (fs.existsSync(rootDistPath)) {
+  app.use(express.static(rootDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(rootDistPath, 'index.html'));
+  });
+} else {
+  app.get('/', (req, res) => {
+    res.send('New Ajeet Vision API is running...');
+  });
+}
 
 // Error Handling Middlewares
 app.use(notFound);
