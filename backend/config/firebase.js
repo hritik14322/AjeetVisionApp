@@ -11,11 +11,11 @@ try {
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
   };
 
-  if (serviceAccount.projectId && serviceAccount.privateKey) {
+  if (serviceAccount.projectId && serviceAccount.privateKey && serviceAccount.clientEmail) {
     admin.initializeApp({
-      credential: admin.credential.cert(serviceAccount),
+      credential: admin.cert(serviceAccount),
     });
-    console.log('Firebase Admin Initialized');
+    console.log('Firebase Admin Initialized Successfully');
   } else {
     console.warn('Firebase config missing. Auth features will fail.');
   }
