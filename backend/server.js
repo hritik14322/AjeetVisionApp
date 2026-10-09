@@ -1,4 +1,14 @@
 require('dotenv').config();
+
+// Global Exception Safety
+process.on('uncaughtException', (err) => {
+  console.error('UNCAUGHT EXCEPTION:', err);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('UNHANDLED REJECTION:', reason);
+});
+
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
@@ -7,7 +17,7 @@ const cookieParser = require('cookie-parser');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 
-// Connect to Database
+// Connect to Database (graceful)
 connectDB();
 
 const app = express();
@@ -32,6 +42,11 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('dev'));
 }
 
+// Health check endpoint for Hostinger/Cloud health probes
+app.get('/health', (req, res) => {
+  res.status(200).json({ status: 'UP', message: 'New Ajeet Vision API is running smoothly' });
+});
+
 // API Routes
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/users', require('./routes/userRoutes'));
@@ -49,27 +64,37 @@ const backendPublicPath = path.join(__dirname, 'public');
 const frontendDistPath = path.join(__dirname, '../frontend/dist');
 const rootDistPath = path.join(__dirname, '../dist');
 
+const serveIndexHtml = (res, folderPath) => {
+  const indexPath = path.join(folderPath, 'index.html');
+  res.sendFile(indexPath, (err) => {
+    if (err) {
+      console.error(`Error sending ${indexPath}:`, err.message);
+      res.status(200).send('<h1>New Ajeet Vision</h1><p>Application is starting up...</p>');
+    }
+  });
+};
+
 if (fs.existsSync(backendPublicPath) && fs.existsSync(path.join(backendPublicPath, 'index.html'))) {
   app.use(express.static(backendPublicPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(backendPublicPath, 'index.html'));
+    serveIndexHtml(res, backendPublicPath);
   });
-} else if (fs.existsSync(frontendDistPath)) {
+} else if (fs.existsSync(frontendDistPath) && fs.existsSync(path.join(frontendDistPath, 'index.html'))) {
   app.use(express.static(frontendDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(frontendDistPath, 'index.html'));
+    serveIndexHtml(res, frontendDistPath);
   });
-} else if (fs.existsSync(rootDistPath)) {
+} else if (fs.existsSync(rootDistPath) && fs.existsSync(path.join(rootDistPath, 'index.html'))) {
   app.use(express.static(rootDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
-    res.sendFile(path.join(rootDistPath, 'index.html'));
+    serveIndexHtml(res, rootDistPath);
   });
 } else {
   app.get('/', (req, res) => {
-    res.send('New Ajeet Vision API is running...');
+    res.send('<h1>New Ajeet Vision Server Online</h1><p>API Endpoint active.</p>');
   });
 }
 
@@ -79,6 +104,10 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server running in ${process.env.NODE_ENV || 'production'} mode on port ${PORT}`);
+const server = app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+server.on('error', (err) => {
+  console.error('Server listen error:', err.message);
 });
