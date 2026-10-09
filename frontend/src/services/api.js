@@ -74,99 +74,167 @@ export const apiService = {
     if (!email || !email.includes('@')) throw new Error('Please enter a valid email address');
     if (!password || password.length < 6) throw new Error('Password must be at least 6 characters long');
 
+    let backendResult = null;
+    let backendErrorMessage = null;
+
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
         body: JSON.stringify({
           name: name.trim(),
           mobile: `+91 ${cleanMobile.slice(-10)}`,
           email: email.trim().toLowerCase(),
           password,
         }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Registration failed');
+      clearTimeout(timeoutId);
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (res.ok) {
+          backendResult = data;
+        } else {
+          backendErrorMessage = data.message || 'Registration failed';
+        }
       }
-      const token = data.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(data));
-      return { success: true, token, user: data };
-    } catch (err) {
-      if (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch')) {
-        throw err;
-      }
-      // Offline fallback
-      await delay(500);
-      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-      const existing = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
-      if (existing) {
-        throw new Error('An account with this email address already exists. Please sign in.');
-      }
-      const newUser = {
-        name: name.trim(),
-        mobile: `+91 ${cleanMobile.slice(-10)}`,
-        rawMobile: cleanMobile.slice(-10),
-        email: email.trim().toLowerCase(),
-        password,
-        isVerified: true,
-        avatar: '',
-        isVipMember: false,
-        loyaltyPoints: 0,
-      };
-      usersDb.push(newUser);
-      localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
-      const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(newUser));
-      return { success: true, token, user: newUser };
+    } catch (e) {
+      // Network or connection fallback
     }
+
+    if (backendErrorMessage) {
+      if (backendErrorMessage.includes('already exists') || backendErrorMessage.includes('User already exists')) {
+        throw new Error('An account with this email already exists. Please sign in instead.');
+      }
+      throw new Error(backendErrorMessage);
+    }
+
+    // Prepare normalized user object
+    const userToSave = {
+      id: backendResult?._id || `user_${Date.now()}`,
+      _id: backendResult?._id,
+      name: (backendResult?.name || name).trim(),
+      mobile: backendResult?.mobile || `+91 ${cleanMobile.slice(-10)}`,
+      rawMobile: cleanMobile.slice(-10),
+      email: (backendResult?.email || email).trim().toLowerCase(),
+      role: backendResult?.role || 'customer',
+      password,
+      isVerified: true,
+      avatar: '',
+      isVipMember: Boolean(backendResult?.vipMembership?.isActive || false),
+      loyaltyPoints: backendResult?.loyaltyPoints || 0,
+    };
+
+    const token = backendResult?.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+    userToSave.token = token;
+
+    // Save locally
+    const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+    const existingIdx = usersDb.findIndex(u => u.email?.toLowerCase() === email.trim().toLowerCase());
+    if (existingIdx >= 0) {
+      usersDb[existingIdx] = { ...usersDb[existingIdx], ...userToSave };
+    } else {
+      usersDb.push(userToSave);
+    }
+    localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userToSave));
+
+    return { success: true, token, user: userToSave };
   },
 
   async signIn({ email, password, fallbackUser }) {
     if (!email || !email.includes('@')) throw new Error('Please enter a valid email address');
     if (!password) throw new Error('Please enter your password');
 
+    const cleanEmail = email.trim().toLowerCase();
+    let backendErrorMessage = null;
+
+    // 1. Try backend authentication
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 6000);
+
       const res = await fetch('/api/auth/login', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          password,
-        }),
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, password }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Invalid email or password');
+      clearTimeout(timeoutId);
+
+      const contentType = res.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        const data = await res.json();
+        if (res.ok) {
+          const token = data.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+          const userObj = {
+            ...data,
+            id: data._id || data.id,
+            name: data.name,
+            email: data.email,
+            mobile: data.mobile || '',
+            rawMobile: (data.mobile || '').replace(/\D/g, '').slice(-10),
+            role: data.role || 'customer',
+            isVipMember: Boolean(data.vipMembership?.isActive || data.isVipMember),
+            isVerified: data.isVerified !== undefined ? data.isVerified : true,
+            loyaltyPoints: data.loyaltyPoints || 0,
+            avatar: data.avatar || '',
+            token,
+          };
+          localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+          localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(userObj));
+
+          // Sync to local users db
+          const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+          const idx = usersDb.findIndex(u => u.email?.toLowerCase() === cleanEmail);
+          if (idx >= 0) usersDb[idx] = { ...usersDb[idx], ...userObj, password };
+          else usersDb.push({ ...userObj, password });
+          localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+
+          return { success: true, token, user: userObj };
+        } else {
+          backendErrorMessage = data.message || 'Invalid credentials';
+        }
       }
-      const token = data.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(data));
-      return { success: true, token, user: data };
-    } catch (err) {
-      if (err.message && !err.message.includes('fetch') && !err.message.includes('Failed to fetch')) {
-        throw err;
-      }
-      // Offline / local fallback
-      await delay(500);
-      if (fallbackUser) {
-        const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-        localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(fallbackUser));
-        return { success: true, token, user: fallbackUser };
-      }
-      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-      const user = usersDb.find(u => u.email.toLowerCase() === email.trim().toLowerCase() && u.password === password);
-      if (!user) {
-        throw new Error('Account not found. Please check your credentials or Sign Up.');
-      }
-      const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
-      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
-      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
-      return { success: true, token, user };
+    } catch (e) {
+      // Backend not available / network timeout
     }
+
+    // 2. Check local registered users DB
+    const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+    const localUser = usersDb.find(u => u.email?.toLowerCase() === cleanEmail);
+
+    if (localUser) {
+      if (localUser.password && localUser.password !== password) {
+        throw new Error('Incorrect password. Please try again.');
+      }
+      const token = localUser.token || `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      localUser.token = token;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(localUser));
+      return { success: true, token, user: localUser };
+    }
+
+    if (backendErrorMessage) {
+      throw new Error(backendErrorMessage);
+    }
+
+    if (fallbackUser) {
+      const token = `jwt_nav_${Date.now()}_${Math.random().toString(36).substring(2)}`;
+      fallbackUser.token = token;
+      localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(fallbackUser));
+      return { success: true, token, user: fallbackUser };
+    }
+
+    // 3. User account not found
+    throw new Error('No account found with this email. Please click "Sign Up" above to create an account.');
   },
 
   async forgotPassword(email) {

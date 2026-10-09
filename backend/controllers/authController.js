@@ -88,7 +88,7 @@ const registerUser = asyncHandler(async (req, res) => {
   });
 
   if (user) {
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
     res.status(201).json({
       _id: user._id,
       name: user.name,
@@ -97,6 +97,7 @@ const registerUser = asyncHandler(async (req, res) => {
       role: user.role,
       vipMembership: user.vipMembership,
       loyaltyPoints: user.loyaltyPoints,
+      token,
     });
   } else {
     res.status(400);
@@ -113,7 +114,7 @@ const loginUser = asyncHandler(async (req, res) => {
   const user = await User.findOne({ email: email.toLowerCase() });
 
   if (user && (user.password === password || !user.password)) {
-    generateToken(res, user._id);
+    const token = generateToken(res, user._id);
     res.status(200).json({
       _id: user._id,
       name: user.name,
@@ -122,6 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
       role: user.role,
       vipMembership: user.vipMembership,
       loyaltyPoints: user.loyaltyPoints,
+      token,
     });
   } else {
     res.status(401);

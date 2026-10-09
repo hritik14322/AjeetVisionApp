@@ -44,24 +44,27 @@ export const HomeScreen = () => {
   const isDragging = useRef(false);
 
   // Dynamic Loyalty Points & Card state
-  const [loyaltyPts, setLoyaltyPts] = useState(950);
-  const [loyaltyCardDisplay, setLoyaltyCardDisplay] = useState('•••• 6789');
+  const [loyaltyPts, setLoyaltyPts] = useState(0);
+  const [loyaltyCardDisplay, setLoyaltyCardDisplay] = useState('Not Linked');
 
   useEffect(() => {
     const fetchLoyaltyData = async () => {
       try {
         const details = await apiService.getLoyaltyCardDetails();
-        if (details.currentPoints !== undefined) setLoyaltyPts(details.currentPoints);
-        if (details.cardNumber) {
+        if (details?.points !== undefined) setLoyaltyPts(details.points);
+        else if (details?.currentPoints !== undefined) setLoyaltyPts(details.currentPoints);
+        if (details?.cardNumber) {
           const clean = details.cardNumber.replace(/\s+/g, '');
           setLoyaltyCardDisplay(`•••• ${clean.slice(-4)}`);
+        } else {
+          setLoyaltyCardDisplay('Not Linked');
         }
       } catch (err) {
         console.error('Error loading loyalty details on Home:', err);
       }
     };
     fetchLoyaltyData();
-  }, []);
+  }, [currentUser]);
 
   const nextBanner = () => {
     setActiveBannerIndex((prev) => (prev + 1) % PROMOTIONAL_BANNERS.length);
