@@ -45,10 +45,17 @@ app.use('/api/offers', require('./routes/offerRoutes'));
 app.use('/api/admin/dashboard', require('./routes/adminDashboardRoutes'));
 
 // Serve React Frontend static assets in Deployment
+const backendPublicPath = path.join(__dirname, 'public');
 const frontendDistPath = path.join(__dirname, '../frontend/dist');
 const rootDistPath = path.join(__dirname, '../dist');
 
-if (fs.existsSync(frontendDistPath)) {
+if (fs.existsSync(backendPublicPath) && fs.existsSync(path.join(backendPublicPath, 'index.html'))) {
+  app.use(express.static(backendPublicPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next();
+    res.sendFile(path.join(backendPublicPath, 'index.html'));
+  });
+} else if (fs.existsSync(frontendDistPath)) {
   app.use(express.static(frontendDistPath));
   app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
