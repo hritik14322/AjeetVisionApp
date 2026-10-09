@@ -76,19 +76,19 @@ const serveIndexHtml = (res, folderPath) => {
 
 if (fs.existsSync(backendPublicPath) && fs.existsSync(path.join(backendPublicPath, 'index.html'))) {
   app.use(express.static(backendPublicPath));
-  app.get('*', (req, res, next) => {
+  app.get('/*path', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     serveIndexHtml(res, backendPublicPath);
   });
 } else if (fs.existsSync(frontendDistPath) && fs.existsSync(path.join(frontendDistPath, 'index.html'))) {
   app.use(express.static(frontendDistPath));
-  app.get('*', (req, res, next) => {
+  app.get('/*path', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     serveIndexHtml(res, frontendDistPath);
   });
 } else if (fs.existsSync(rootDistPath) && fs.existsSync(path.join(rootDistPath, 'index.html'))) {
   app.use(express.static(rootDistPath));
-  app.get('*', (req, res, next) => {
+  app.get('/*path', (req, res, next) => {
     if (req.path.startsWith('/api')) return next();
     serveIndexHtml(res, rootDistPath);
   });
@@ -104,7 +104,7 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-const server = app.listen(PORT, () => {
+const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
 });
 
