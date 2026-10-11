@@ -23,6 +23,30 @@ export const getSyncCategories = () => {
   return adminCats ? JSON.parse(adminCats) : CATEGORIES;
 };
 
+export const getActiveCustomerData = () => {
+  try {
+    const user = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
+    const syncCustomers = JSON.parse(localStorage.getItem('ADMIN_SYNC_CUSTOMERS') || '[]');
+
+    let matched = null;
+    if (user) {
+      matched = syncCustomers.find(c => 
+        (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+        (c.mobile && user.mobile && c.mobile.replace(/\D/g, '') === user.mobile.replace(/\D/g, '')) ||
+        (c.name && user.name && c.name.toLowerCase() === user.name.toLowerCase())
+      );
+    }
+
+    if (!matched) {
+      matched = syncCustomers.find(c => c && (c.email === 'hritik@gmail.com' || c.name === 'Hritik Kumar')) || syncCustomers[0];
+    }
+
+    return matched;
+  } catch (e) {
+    return null;
+  }
+};
+
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.newajeetvision.com/v1';
 
 // Helper to simulate network latency
@@ -423,22 +447,27 @@ export const apiService = {
 
   // ---------------- REWARD & WHEEL SERVICES ----------------
   async getRewardJourney() {
-    await delay(400);
-    const state = JSON.parse(localStorage.getItem(STORAGE_KEYS.REWARD_STATE) || JSON.stringify(INITIAL_REWARD_STATE));
-    const target = state.targetSpend || 100000;
-    const current = state.currentSpend || 72500;
+    await delay(100);
+    const cust = getActiveCustomerData();
+    const target = 100000;
+    const current = cust ? (Number(cust.spent) || 0) : 0;
     const percentage = Math.min(100, Math.round((current / target) * 100));
     const remaining = Math.max(0, target - current);
     const isUnlocked = current >= target;
 
-    return {
-      ...state,
+    const state = {
       currentSpend: current,
       targetSpend: target,
       percentage,
       remainingAmount: remaining,
       isUnlocked,
+      hasSpun: false,
+      claimedReward: null,
+      claimCode: null,
     };
+
+    localStorage.setItem(STORAGE_KEYS.REWARD_STATE, JSON.stringify(state));
+    return state;
   },
 
   // Simulate spending reach ₹1,00,000 for demonstration/testing
@@ -518,27 +547,51 @@ export const apiService = {
 
   // ---------------- PURCHASES & INVOICE SERVICES ----------------
   async getPurchases(statusFilter = 'all') {
-    await delay(200);
-    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || '[]');
-    let filtered = purchases;
+    await delay(100);
+    const cust = getActiveCustomerData();
+    const rawPurchases = (cust && Array.isArray(cust.purchases)) ? cust.purchases : [];
+
+    const normalized = rawPurchases.map((p, idx) => {
+      const total = Number(p.amount ?? p.totalAmount ?? (typeof p.amt === 'string' ? p.amt.replace(/[^0-9]/g, '') : p.amt) ?? 0);
+      const paid = Number(p.paid ?? p.paidAmount ?? p.amountPaid ?? total);
+      const remaining = Number(p.due ?? p.remainingAmount ?? Math.max(0, total - paid));
+      const invoiceNo = p.invoiceNumber || p.invoiceNo || p.id || `INV-${idx + 1}`;
+      const name = p.items || p.item || (p.products && p.products.map(pr => pr.name).join(', ')) || 'Store Purchase';
+      const status = (p.status === 'Paid' || p.status === 'completed' || remaining === 0) ? 'completed' : 'ongoing';
+
+      return {
+        id: p.id || p._id || invoiceNo || `pur-${idx}`,
+        invoiceNo,
+        productName: name,
+        image: p.image || 'https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?auto=format&fit=crop&w=400&q=80',
+        date: p.date || 'Recent',
+        totalAmount: total,
+        amountPaid: paid,
+        remainingAmount: remaining,
+        status, // 'completed' or 'ongoing'
+        method: p.method || 'Store Billing',
+      };
+    });
+
+    let filtered = normalized;
     if (statusFilter !== 'all') {
-      filtered = purchases.filter((p) => p.status === statusFilter);
+      filtered = normalized.filter((p) => p.status === statusFilter);
     }
-    const totalOutstanding = purchases.reduce((acc, curr) => acc + (curr.remainingAmount || 0), 0);
+    const totalOutstanding = normalized.reduce((acc, curr) => acc + (curr.remainingAmount || 0), 0);
 
     return {
       purchases: filtered,
-      allPurchasesCount: purchases.length,
-      ongoingCount: purchases.filter(p => p.status === 'ongoing').length,
-      completedCount: purchases.filter(p => p.status === 'completed').length,
+      allPurchasesCount: normalized.length,
+      ongoingCount: normalized.filter(p => p.status === 'ongoing').length,
+      completedCount: normalized.filter(p => p.status === 'completed').length,
       totalOutstanding,
     };
   },
 
   async getInvoiceDetails(invoiceNo) {
-    await delay(200);
-    const purchases = JSON.parse(localStorage.getItem(STORAGE_KEYS.PURCHASES) || '[]');
-    const invoice = purchases.find((p) => p.invoiceNo === invoiceNo);
+    await delay(100);
+    const res = await this.getPurchases('all');
+    const invoice = res.purchases.find((p) => p.invoiceNo === invoiceNo || p.id === invoiceNo);
     if (!invoice) {
       throw new Error(`Invoice ${invoiceNo} not found`);
     }

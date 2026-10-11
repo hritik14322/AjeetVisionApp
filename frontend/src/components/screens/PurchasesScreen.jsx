@@ -112,16 +112,12 @@ export const PurchasesScreen = () => {
               className="bg-white rounded-2xl p-4 sm:p-5 border border-gray-200/80 hover:border-gray-300 transition shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
             >
               <div className="flex items-center gap-3.5">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-50 rounded-xl p-2 flex items-center justify-center flex-shrink-0 border border-gray-100">
-                  <img
-                    src={item.image}
-                    alt={item.productName}
-                    className="w-full h-full object-contain"
-                  />
+                <div className="w-14 h-14 sm:w-16 sm:h-16 bg-[#FFF5F5] rounded-2xl flex items-center justify-center flex-shrink-0 border border-[#FFD0D4]">
+                  <Receipt className="w-7 h-7 text-[#FF3B4A]" />
                 </div>
 
                 <div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-gray-900 text-sm sm:text-base">
                       {item.productName}
                     </h3>
@@ -132,11 +128,11 @@ export const PurchasesScreen = () => {
                           : 'bg-emerald-100 text-emerald-800'
                       }`}
                     >
-                      {item.status}
+                      {isOngoing ? 'Pending EMI' : 'Paid in Full'}
                     </span>
                   </div>
 
-                  <p className="text-xs text-gray-400 mt-0.5">Purchased on {item.date}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Invoice: <span className="font-mono font-bold text-gray-700">{item.invoiceNo}</span> · {item.date}</p>
 
                   <div className="flex items-center gap-3 text-xs mt-2 flex-wrap">
                     <span>

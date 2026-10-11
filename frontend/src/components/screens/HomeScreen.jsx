@@ -28,6 +28,7 @@ export const HomeScreen = () => {
   const {
     navigateTo,
     rewardJourney,
+    refreshRewards,
     toggleRewardTargetSimulation,
     wishlistIds,
     toggleWishlist,
@@ -35,6 +36,10 @@ export const HomeScreen = () => {
     currentUser,
     openEmiCalculator,
   } = useApp();
+
+  useEffect(() => {
+    if (refreshRewards) refreshRewards();
+  }, [currentUser]);
 
   // Banner carousel state & gesture handling
   const [activeBannerIndex, setActiveBannerIndex] = useState(0);
@@ -279,7 +284,7 @@ export const HomeScreen = () => {
                 if (rewardJourney.isUnlocked) {
                   navigateTo('reward_unlocked');
                 } else {
-                  toggleRewardTargetSimulation();
+                  navigateTo('purchases');
                 }
               }}
               className="w-full px-5 py-3 sm:py-3.5 bg-gradient-to-r from-[#FF3B4A] to-[#E51020] text-white font-bold rounded-[14px] text-[14px] sm:text-[15px] hover:shadow-[0_8px_20px_rgba(229,16,32,0.3)] transition-all flex items-center justify-center gap-2"
@@ -292,7 +297,7 @@ export const HomeScreen = () => {
                 </>
               ) : (
                 <>
-                  Keep Shopping
+                  View My Purchases & Bills
                   <ChevronRight className="w-4 h-4" />
                 </>
               )}
