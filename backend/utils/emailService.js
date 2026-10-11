@@ -57,7 +57,7 @@ const generateOtpEmailHtml = (otp, type = 'signup') => {
             <tr>
               <td style="background: linear-gradient(135deg, #B91C1C 0%, #E51926 50%, #991B1B 100%); padding: 32px 24px; text-align: center;">
                 <h1 style="margin: 0; color: #FFFFFF; font-size: 26px; font-weight: 900; letter-spacing: 0.5px;">NEW AJEET VISION</h1>
-                <p style="margin: 6px 0 0 0; color: #FEE2E2; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Electronics Showroom • Obra, Bihar</p>
+                <p style="margin: 6px 0 0 0; color: #FEE2E2; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Obra, Bihar</p>
               </td>
             </tr>
 
@@ -85,7 +85,7 @@ const generateOtpEmailHtml = (otp, type = 'signup') => {
             <!-- Footer -->
             <tr>
               <td style="background-color: #F9FAFB; padding: 24px 32px; border-top: 1px solid #E5E7EB; text-align: center;">
-                <p style="margin: 0; color: #374151; font-size: 12px; font-weight: 700;">New Ajeet Vision Electronics</p>
+                <p style="margin: 0; color: #374151; font-size: 12px; font-weight: 700;">New Ajeet Vision</p>
                 <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Main Market, Main Road Obra, Aurangabad, Bihar - 824124</p>
                 <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Helpline: +91 6203314651 | WhatsApp: +91 7488492130</p>
               </td>

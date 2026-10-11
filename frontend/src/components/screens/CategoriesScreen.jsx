@@ -27,7 +27,7 @@ export const CategoriesScreen = () => {
             <h2 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
               All Categories
             </h2>
-            <p className="text-xs text-gray-500">Explore New Ajeet Vision electronics range</p>
+            <p className="text-xs text-gray-500">Explore New Ajeet Vision range</p>
           </div>
         </div>
       </div>
