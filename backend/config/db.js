@@ -1,15 +1,28 @@
 const mongoose = require('mongoose');
 
 const connectDB = async () => {
-  try {
-    if (!process.env.MONGO_URI) {
-      console.warn('MONGO_URI is missing in environment variables');
+  const primaryUri = process.env.MONGO_URI;
+  const localUri = process.env.LOCAL_MONGO_URI || 'mongodb://127.0.0.1:27017/new-ajeet-vision';
+
+  if (primaryUri) {
+    try {
+      const conn = await mongoose.connect(primaryUri, {
+        serverSelectionTimeoutMS: 3500,
+      });
+      console.log(`MongoDB Connected: ${conn.connection.host}`);
       return;
+    } catch (err) {
+      console.warn(`Primary MongoDB connection error (${err.message}). Switching to local fallback...`);
     }
-    const conn = await mongoose.connect(process.env.MONGO_URI);
-    console.log(`MongoDB Connected: ${conn.connection.host}`);
-  } catch (error) {
-    console.error(`MongoDB Connection Error: ${error.message}`);
+  }
+
+  try {
+    const localConn = await mongoose.connect(localUri, {
+      serverSelectionTimeoutMS: 3000,
+    });
+    console.log(`Fallback MongoDB Connected Locally: ${localConn.connection.host}`);
+  } catch (localErr) {
+    console.error(`MongoDB Local Connection Error: ${localErr.message}`);
   }
 };
 

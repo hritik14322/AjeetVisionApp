@@ -176,6 +176,23 @@ export const AppProvider = ({ children }) => {
     return res;
   };
 
+  const handleSendEmailOtp = async (email, type = 'signup') => {
+    const res = await apiService.sendEmailOtp(email, type);
+    showToast(res.message, 'success');
+    return res;
+  };
+
+  const handleVerifyEmailOtp = async (email, otp) => {
+    const res = await apiService.verifyEmailOtp(email, otp);
+    return res;
+  };
+
+  const handleResetPasswordWithOtp = async (email, otp, newPassword) => {
+    const res = await apiService.resetPasswordWithOtp(email, otp, newPassword);
+    showToast(res.message, 'success');
+    return res;
+  };
+
   const handleSendOtp = async (mobile) => {
     const res = await apiService.sendOtp(mobile);
     setPendingOtpMobile(mobile);
@@ -260,6 +277,9 @@ export const AppProvider = ({ children }) => {
         handleSignUp,
         handleSignIn,
         handleForgotPassword,
+        handleSendEmailOtp,
+        handleVerifyEmailOtp,
+        handleResetPasswordWithOtp,
         handleSendOtp,
         handleVerifyOtp,
         handleLogout,

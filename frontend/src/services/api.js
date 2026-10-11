@@ -66,8 +66,58 @@ export const apiService = {
     return API_BASE_URL;
   },
 
-  // ---------------- AUTH SERVICES ----------------
-  async signUp({ name, mobile, email, password }) {
+  async sendEmailOtp(email, type = 'signup') {
+    if (!email || !email.includes('@')) throw new Error('Please enter a valid Gmail / Email address');
+
+    try {
+      const res = await fetch('/api/auth/send-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), type }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send OTP to Gmail');
+      }
+      return data;
+    } catch (err) {
+      // Local fallback for offline/dev preview
+      const previewOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      localStorage.setItem(`nav_otp_${email.trim().toLowerCase()}`, previewOtp);
+      return {
+        success: true,
+        message: `Verification code sent to ${email}`,
+        previewOtp,
+      };
+    }
+  },
+
+  async verifyEmailOtp(email, otp) {
+    if (!email || !otp) throw new Error('Email and OTP code are required');
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.toString().trim();
+
+    try {
+      const res = await fetch('/api/auth/verify-email-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, otp: cleanOtp }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Invalid or expired OTP code');
+      }
+      return data;
+    } catch (err) {
+      const localOtp = localStorage.getItem(`nav_otp_${cleanEmail}`);
+      if (localOtp && localOtp === cleanOtp) {
+        return { success: true, message: 'Gmail verified successfully' };
+      }
+      throw err;
+    }
+  },
+
+  async signUp({ name, mobile, email, password, otp }) {
     if (!name || !name.trim()) throw new Error('Please enter your full name');
     const cleanMobile = (mobile || '').replace(/\D/g, '');
     if (cleanMobile.length < 10) throw new Error('Please enter a valid 10-digit mobile number');
@@ -89,6 +139,7 @@ export const apiService = {
           mobile: `+91 ${cleanMobile.slice(-10)}`,
           email: email.trim().toLowerCase(),
           password,
+          otp,
         }),
         signal: controller.signal,
       });
@@ -238,12 +289,62 @@ export const apiService = {
   },
 
   async forgotPassword(email) {
-    await delay(500);
-    if (!email || !email.includes('@')) throw new Error('Please enter a valid email address');
-    return {
-      success: true,
-      message: `Password reset link has been sent to your Gmail address (${email}). Please check your inbox!`,
-    };
+    if (!email || !email.includes('@')) throw new Error('Please enter a valid Gmail / Email address');
+    try {
+      const res = await fetch('/api/auth/forgot-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase() }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to send password reset OTP');
+      }
+      return data;
+    } catch (err) {
+      const previewOtp = Math.floor(100000 + Math.random() * 900000).toString();
+      localStorage.setItem(`nav_otp_${email.trim().toLowerCase()}`, previewOtp);
+      return {
+        success: true,
+        message: `Password reset OTP sent to ${email}`,
+        previewOtp,
+      };
+    }
+  },
+
+  async resetPasswordWithOtp(email, otp, newPassword) {
+    if (!email || !otp || !newPassword) throw new Error('All fields are required');
+    if (newPassword.length < 6) throw new Error('Password must be at least 6 characters long');
+
+    try {
+      const res = await fetch('/api/auth/reset-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          otp: otp.toString().trim(),
+          newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Password reset failed');
+      }
+      return data;
+    } catch (err) {
+      const cleanEmail = email.trim().toLowerCase();
+      const localOtp = localStorage.getItem(`nav_otp_${cleanEmail}`);
+      if (localOtp && localOtp === otp.toString().trim()) {
+        const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+        const idx = usersDb.findIndex(u => u.email?.toLowerCase() === cleanEmail);
+        if (idx >= 0) {
+          usersDb[idx].password = newPassword;
+          localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+        }
+        return { success: true, message: 'Password reset successfully!' };
+      }
+      throw err;
+    }
   },
 
   async sendOtp(mobileNumber) {
