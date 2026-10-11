@@ -30,6 +30,41 @@ import { ProfileScreen } from './components/screens/ProfileScreen';
 import { AdminDashboardScreen } from './components/screens/AdminDashboardScreen';
 import { AdminLoginScreen } from './components/screens/AdminLoginScreen';
 
+class ErrorBoundary extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = { hasError: false, error: null };
+  }
+  static getDerivedStateFromError(error) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error, errorInfo) {
+    console.error('ErrorBoundary caught:', error, errorInfo);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-6 text-center">
+          <div className="w-14 h-14 rounded-2xl bg-red-50 text-red-500 flex items-center justify-center mb-4 text-2xl font-bold border border-red-200">
+            ⚠️
+          </div>
+          <h2 className="text-[#0B1527] font-extrabold text-[20px] mb-2">Display Error Detected</h2>
+          <p className="text-[#64748B] text-[13px] max-w-sm mb-5">
+            {this.state.error?.message || 'A temporary display error occurred while rendering this view.'}
+          </p>
+          <button
+            onClick={() => { this.setState({ hasError: false }); window.location.reload(); }}
+            className="px-5 py-2.5 bg-[#FF3B4A] text-white font-bold rounded-xl text-[13px] shadow hover:bg-[#E51020] transition-all"
+          >
+            Reload Page
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 const AppContent = () => {
   const { currentView } = useApp();
 
@@ -106,8 +141,10 @@ const AppContent = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <AppContent />
-    </AppProvider>
+    <ErrorBoundary>
+      <AppProvider>
+        <AppContent />
+      </AppProvider>
+    </ErrorBoundary>
   );
 }

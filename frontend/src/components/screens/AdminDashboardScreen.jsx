@@ -64,7 +64,7 @@ export const DEMO_HRITIK = {
   isVipMember: true,
   outstanding: 0,
   spent: 48990,
-  rewardProgress: 48990,
+  rewardProgress: 49,
   joinedDate: '10 Oct 2024',
   loyaltyCardNumber: 'NAV-2024-8849',
   purchases: [
@@ -75,11 +75,15 @@ export const DEMO_HRITIK = {
       invoiceNo: 'NAV-2024-001',
       name: 'Hritik Kumar',
       customer: { name: 'Hritik Kumar', email: 'hritik@gmail.com', phone: '+91 99318 42478' },
+      items: 'Sony Bravia 50" 4K Smart Google TV',
       item: 'Sony Bravia 50" 4K Smart Google TV',
+      amount: 48990,
       totalAmount: 48990,
       amt: '₹48,990',
+      paid: 48990,
       paidAmount: 48990,
       remainingAmount: 0,
+      due: 0,
       date: '10 Oct 2024',
       status: 'Paid',
       method: 'UPI / Online',
@@ -380,6 +384,13 @@ const CustomersSection = () => {
   // ─── Customer Detail View ───
   if (selectedCustomer) {
     const c = selectedCustomer;
+    const customerSpent = Number(c.spent) || 0;
+    const customerOutstanding = Number(c.outstanding) || 0;
+    const customerPoints = Number(c.points) || 0;
+    const customerPurchases = Array.isArray(c.purchases) ? c.purchases : [];
+    const customerHistory = Array.isArray(c.pointHistory) ? c.pointHistory : [];
+    const progressPercent = Math.min(100, Math.round(((customerSpent || Number(c.rewardProgress) || 0) / 100000) * 100));
+
     return (
       <div className="space-y-4">
         {/* Back bar */}
@@ -392,15 +403,15 @@ const CustomersSection = () => {
         <SectionCard className="p-5">
           <div className="flex items-center gap-4">
             <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#FF3B4A] to-[#0B1527] flex items-center justify-center text-white font-extrabold text-[24px] flex-shrink-0">
-              {c.name[0]}
+              {(c.name || 'U')[0]}
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
-                <h2 className="text-[#0B1527] font-extrabold text-[20px]">{c.name}</h2>
+                <h2 className="text-[#0B1527] font-extrabold text-[20px]">{c.name || 'Customer'}</h2>
                 {c.vip && <span className="bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">👑 VIP</span>}
               </div>
-              <p className="text-[#64748B] text-[13px]">{c.mobile} · {c.email}</p>
-              <p className="text-[#64748B] text-[12px]">Member since {c.joinedDate}</p>
+              <p className="text-[#64748B] text-[13px]">{c.mobile || 'No Mobile'} · {c.email || 'No Email'}</p>
+              <p className="text-[#64748B] text-[12px]">Member since {c.joinedDate || '10 Oct 2024'}</p>
             </div>
           </div>
 
@@ -408,16 +419,16 @@ const CustomersSection = () => {
           <div className="grid grid-cols-3 gap-3 mt-5">
             <div className="bg-[#F7F8FA] rounded-[14px] p-3 text-center">
               <p className="text-[#64748B] text-[10px] font-medium">Total Spent</p>
-              <p className="text-[#0B1527] font-extrabold text-[15px]">₹{c.spent.toLocaleString('en-IN')}</p>
+              <p className="text-[#0B1527] font-extrabold text-[15px]">₹{customerSpent.toLocaleString('en-IN')}</p>
             </div>
             <div className="bg-[#FEF5E7] rounded-[14px] p-3 text-center">
               <p className="text-[#64748B] text-[10px] font-medium">Loyalty Pts</p>
-              <p className="text-[#F59E0B] font-extrabold text-[15px]">⭐ {c.points}</p>
+              <p className="text-[#F59E0B] font-extrabold text-[15px]">⭐ {customerPoints}</p>
             </div>
-            <div className={`${c.outstanding > 0 ? 'bg-[#FFEBEC]' : 'bg-[#EDF7F0]'} rounded-[14px] p-3 text-center`}>
+            <div className={`${customerOutstanding > 0 ? 'bg-[#FFEBEC]' : 'bg-[#EDF7F0]'} rounded-[14px] p-3 text-center`}>
               <p className="text-[#64748B] text-[10px] font-medium">Outstanding</p>
-              <p className={`font-extrabold text-[15px] ${c.outstanding > 0 ? 'text-[#FF3B4A]' : 'text-[#2BB159]'}`}>
-                {c.outstanding > 0 ? `₹${c.outstanding.toLocaleString('en-IN')}` : '✓ Clear'}
+              <p className={`font-extrabold text-[15px] ${customerOutstanding > 0 ? 'text-[#FF3B4A]' : 'text-[#2BB159]'}`}>
+                {customerOutstanding > 0 ? `₹${customerOutstanding.toLocaleString('en-IN')}` : '✓ Clear'}
               </p>
             </div>
           </div>
@@ -426,11 +437,11 @@ const CustomersSection = () => {
           <div className="mt-4">
             <div className="flex justify-between items-center mb-1.5">
               <p className="text-[#64748B] text-[12px] font-medium">₹1L Reward Progress</p>
-              <p className="text-[#0B1527] font-bold text-[12px]">{c.rewardProgress}%</p>
+              <p className="text-[#0B1527] font-bold text-[12px]">{progressPercent}%</p>
             </div>
             <div className="h-2.5 bg-[#E2E8F0] rounded-full overflow-hidden">
               <div className="h-full rounded-full bg-gradient-to-r from-[#FF3B4A] to-[#E51020] transition-all duration-500"
-                style={{ width: `${c.rewardProgress}%` }} />
+                style={{ width: `${progressPercent}%` }} />
             </div>
           </div>
         </SectionCard>
@@ -479,32 +490,47 @@ const CustomersSection = () => {
 
         {/* Purchases */}
         <SectionCard>
-          <SectionHeader title="Purchase History" subtitle={`${c.purchases.length} bills`} />
+          <SectionHeader title="Purchase History" subtitle={`${customerPurchases.length} bills`} />
           <div className="divide-y divide-[#F7F8FA]">
-            {c.purchases.map(p => (
-              <div key={p.id} className="px-5 py-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <p className="text-[#0B1527] font-semibold text-[13px]">{p.items}</p>
-                    <p className="text-[#64748B] text-[11px] mt-0.5">{p.id} · {p.date}</p>
+            {customerPurchases.length > 0 ? (
+              customerPurchases.map((p, idx) => {
+                const pAmt = Number(p.amount ?? p.totalAmount ?? (typeof p.amt === 'string' ? p.amt.replace(/[^0-9]/g, '') : p.amt) ?? 0);
+                const pPaid = Number(p.paid ?? p.paidAmount ?? p.amountPaid ?? pAmt);
+                const pDue = Number(p.due ?? p.remainingAmount ?? Math.max(0, pAmt - pPaid));
+                const pItems = p.items || p.item || (p.products && p.products.map(pr => pr.name).join(', ')) || 'Store Purchase';
+                const pInvoice = p.invoiceNumber || p.invoiceNo || p.id || `INV-${idx + 1}`;
+                const pStatus = p.status || (pDue > 0 ? 'Pending' : 'Paid');
+
+                return (
+                  <div key={p.id || p._id || pInvoice || idx} className="px-5 py-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="text-[#0B1527] font-semibold text-[13px]">{pItems}</p>
+                        <p className="text-[#64748B] text-[11px] mt-0.5">{pInvoice} · {p.date || 'Recent'}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[#0B1527] font-bold text-[14px]">₹{pAmt.toLocaleString('en-IN')}</p>
+                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-0.5 ${
+                          pStatus === 'Paid' ? 'bg-[#EDF7F0] text-[#2BB159]' :
+                          pStatus === 'Pending' ? 'bg-[#FFEBEC] text-[#FF3B4A]' :
+                          'bg-[#FEF5E7] text-[#F59E0B]'
+                        }`}>{pStatus}</span>
+                      </div>
+                    </div>
+                    {pPaid < pAmt && (
+                      <div className="mt-2 flex justify-between text-[11px]">
+                        <span className="text-[#64748B]">Paid: <span className="text-[#2BB159] font-semibold">₹{pPaid.toLocaleString('en-IN')}</span></span>
+                        <span className="text-[#64748B]">Due: <span className="text-[#FF3B4A] font-semibold">₹{pDue.toLocaleString('en-IN')}</span></span>
+                      </div>
+                    )}
                   </div>
-                  <div className="text-right">
-                    <p className="text-[#0B1527] font-bold text-[14px]">₹{p.amount.toLocaleString('en-IN')}</p>
-                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md inline-block mt-0.5 ${
-                      p.status === 'Paid' ? 'bg-[#EDF7F0] text-[#2BB159]' :
-                      p.status === 'Pending' ? 'bg-[#FFEBEC] text-[#FF3B4A]' :
-                      'bg-[#FEF5E7] text-[#F59E0B]'
-                    }`}>{p.status}</span>
-                  </div>
-                </div>
-                {p.paid < p.amount && (
-                  <div className="mt-2 flex justify-between text-[11px]">
-                    <span className="text-[#64748B]">Paid: <span className="text-[#2BB159] font-semibold">₹{p.paid.toLocaleString('en-IN')}</span></span>
-                    <span className="text-[#64748B]">Due: <span className="text-[#FF3B4A] font-semibold">₹{(p.amount - p.paid).toLocaleString('en-IN')}</span></span>
-                  </div>
-                )}
+                );
+              })
+            ) : (
+              <div className="p-6 text-center text-[#64748B] text-[13px]">
+                No purchase bills recorded for this customer yet.
               </div>
-            ))}
+            )}
           </div>
         </SectionCard>
 
@@ -529,7 +555,7 @@ const CustomersSection = () => {
                 <Star className="w-6 h-6 text-[#F59E0B]" fill="#F59E0B" />
                 <div>
                   <p className="text-[#64748B] text-[11px] font-medium">Current Balance</p>
-                  <p className="text-[#0B1527] font-extrabold text-[22px]">{c.points} <span className="text-[14px] font-semibold text-[#F59E0B]">points</span></p>
+                  <p className="text-[#0B1527] font-extrabold text-[22px]">{customerPoints} <span className="text-[14px] font-semibold text-[#F59E0B]">points</span></p>
                 </div>
               </div>
 
@@ -566,7 +592,7 @@ const CustomersSection = () => {
                 />
                 {pointsForm.amount && (
                   <p className="text-[#2BB159] text-[12px] font-semibold text-center mt-1.5">
-                    New balance will be: {c.points + Number(pointsForm.amount)} pts
+                    New balance will be: {customerPoints + Number(pointsForm.amount)} pts
                   </p>
                 )}
               </div>
@@ -593,7 +619,7 @@ const CustomersSection = () => {
                 disabled={!pointsForm.amount || !pointsForm.reason}
                 className="w-full py-3.5 bg-gradient-to-r from-[#FF3B4A] to-[#E51020] text-white font-bold rounded-[14px] text-[15px] disabled:opacity-40 disabled:cursor-not-allowed hover:shadow-lg hover:shadow-red-200 transition-all flex items-center justify-center gap-2">
                 <Star className="w-5 h-5 fill-white" />
-                Give {pointsForm.amount || '—'} Points to {c.name.split(' ')[0]}
+                Give {pointsForm.amount || '—'} Points to {(c.name || 'Customer').split(' ')[0]}
               </button>
             </div>
           )}
@@ -601,24 +627,33 @@ const CustomersSection = () => {
           {/* Point History */}
           {pointsTab === 'history' && (
             <div className="divide-y divide-[#F7F8FA]">
-              {c.pointHistory.map((tx, i) => (
-                <div key={i} className="px-5 py-4 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[14px] flex-shrink-0 ${
-                      tx.type === 'manual' ? 'bg-[#FEF5E7]' : tx.pts < 0 ? 'bg-[#FFEBEC]' : 'bg-[#EDF7F0]'
-                    }`}>
-                      {tx.type === 'manual' ? '✨' : tx.pts < 0 ? '↓' : '⭐'}
+              {customerHistory.length > 0 ? (
+                customerHistory.map((tx, i) => {
+                  const pts = Number(tx.pts) || 0;
+                  return (
+                    <div key={i} className="px-5 py-4 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[14px] flex-shrink-0 ${
+                          tx.type === 'manual' ? 'bg-[#FEF5E7]' : pts < 0 ? 'bg-[#FFEBEC]' : 'bg-[#EDF7F0]'
+                        }`}>
+                          {tx.type === 'manual' ? '✨' : pts < 0 ? '↓' : '⭐'}
+                        </div>
+                        <div>
+                          <p className="text-[#0B1527] font-semibold text-[13px]">{tx.reason || 'Points reward'}</p>
+                          <p className="text-[#64748B] text-[11px]">{tx.date || 'Recent'} · by {tx.by || 'Admin'}</p>
+                        </div>
+                      </div>
+                      <p className={`font-extrabold text-[15px] ${pts < 0 ? 'text-[#FF3B4A]' : 'text-[#2BB159]'}`}>
+                        {pts > 0 ? '+' : ''}{pts}
+                      </p>
                     </div>
-                    <div>
-                      <p className="text-[#0B1527] font-semibold text-[13px]">{tx.reason}</p>
-                      <p className="text-[#64748B] text-[11px]">{tx.date} · by {tx.by}</p>
-                    </div>
-                  </div>
-                  <p className={`font-extrabold text-[15px] ${tx.pts < 0 ? 'text-[#FF3B4A]' : 'text-[#2BB159]'}`}>
-                    {tx.pts > 0 ? '+' : ''}{tx.pts}
-                  </p>
+                  );
+                })
+              ) : (
+                <div className="p-6 text-center text-[#64748B] text-[13px]">
+                  No points transaction history found.
                 </div>
-              ))}
+              )}
             </div>
           )}
         </SectionCard>
