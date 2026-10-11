@@ -51,14 +51,54 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', className = 
   );
 };
 
+// ── Demo Customer & Bill Definition
+export const DEMO_HRITIK = {
+  id: 'usr-hritik-demo',
+  _id: 'usr-hritik-demo',
+  name: 'Hritik Kumar',
+  mobile: '+91 99318 42478',
+  phone: '+91 99318 42478',
+  email: 'hritik@gmail.com',
+  points: 950,
+  vip: true,
+  isVipMember: true,
+  outstanding: 0,
+  spent: 48990,
+  rewardProgress: 48990,
+  joinedDate: '10 Oct 2024',
+  loyaltyCardNumber: 'NAV-2024-8849',
+  purchases: [
+    {
+      _id: 'demo_pur_hritik_001',
+      id: 'NAV-2024-001',
+      invoiceNumber: 'NAV-2024-001',
+      invoiceNo: 'NAV-2024-001',
+      name: 'Hritik Kumar',
+      customer: { name: 'Hritik Kumar', email: 'hritik@gmail.com', phone: '+91 99318 42478' },
+      item: 'Sony Bravia 50" 4K Smart Google TV',
+      totalAmount: 48990,
+      amt: '₹48,990',
+      paidAmount: 48990,
+      remainingAmount: 0,
+      date: '10 Oct 2024',
+      status: 'Paid',
+      method: 'UPI / Online',
+    }
+  ],
+  pointHistory: [
+    { date: '10 Oct 2024', type: 'earn', pts: 489, reason: 'Purchase Reward Points', by: 'System' },
+    { date: '10 Oct 2024', type: 'bonus', pts: 461, reason: 'VIP Welcome Bonus', by: 'System' },
+  ],
+};
+
 // ── SECTION: Overview
 const OverviewSection = () => {
   const [statsData, setStatsData] = useState({
-    totalSales: 0,
+    totalSales: 48990,
     totalOutstanding: 0,
-    totalCustomers: 0,
-    totalVipMembers: 0,
-    recentPurchases: [],
+    totalCustomers: 1,
+    totalVipMembers: 1,
+    recentPurchases: DEMO_HRITIK.purchases,
   });
   const [loadingStats, setLoadingStats] = useState(true);
 
@@ -68,27 +108,31 @@ const OverviewSection = () => {
         const res = await fetch('/api/admin/dashboard/stats');
         if (res.ok) {
           const data = await res.json();
-          // Count active local customers if any
           const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
           const localVips = localUsers.filter(u => u.isVipMember).length;
 
+          const hasDbPurchases = data.recentPurchases && data.recentPurchases.length > 0;
+          const sales = (data.totalSales && data.totalSales > 0) ? data.totalSales : 48990;
+          const customers = Math.max(1, data.totalCustomers || 0, localUsers.length);
+          const vips = Math.max(1, data.totalVipMembers || 0, localVips);
+          const purchases = hasDbPurchases ? data.recentPurchases : DEMO_HRITIK.purchases;
+
           setStatsData({
-            totalSales: data.totalSales || 0,
+            totalSales: sales,
             totalOutstanding: data.totalOutstanding || 0,
-            totalCustomers: Math.max(data.totalCustomers || 0, localUsers.length || (data.totalCustomers || 0)),
-            totalVipMembers: Math.max(data.totalVipMembers || 0, localVips || (data.totalVipMembers || 0)),
-            recentPurchases: data.recentPurchases || [],
+            totalCustomers: customers,
+            totalVipMembers: vips,
+            recentPurchases: purchases,
           });
         }
       } catch (err) {
-        // Fallback to local storage count
         const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
         setStatsData({
           totalSales: 48990,
           totalOutstanding: 0,
           totalCustomers: Math.max(1, localUsers.length),
           totalVipMembers: Math.max(1, localUsers.filter(u => u.isVipMember).length),
-          recentPurchases: [],
+          recentPurchases: DEMO_HRITIK.purchases,
         });
       } finally {
         setLoadingStats(false);
@@ -159,18 +203,18 @@ const OverviewSection = () => {
         {statsData.recentPurchases && statsData.recentPurchases.length > 0 ? (
           <div className="divide-y divide-[#F7F8FA]">
             {statsData.recentPurchases.map(r => (
-              <div key={r._id || r.invoiceNo} className="flex items-center justify-between px-5 py-4">
+              <div key={r._id || r.invoiceNumber || r.invoiceNo || r.id} className="flex items-center justify-between px-5 py-4">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-full bg-[#F1E5DB] flex items-center justify-center font-bold text-[#0B1527] text-[14px]">
-                    {(r.customer?.name || r.name || 'C')[0]}
+                    {(r.customer?.name || r.name || 'H')[0]}
                   </div>
                   <div>
-                    <p className="text-[#0B1527] font-semibold text-[14px]">{r.customer?.name || r.name || 'Customer'}</p>
-                    <p className="text-[#64748B] text-[11px]">{r.invoiceNo || r.id || 'INV'}</p>
+                    <p className="text-[#0B1527] font-semibold text-[14px]">{r.customer?.name || r.name || 'Hritik Kumar'}</p>
+                    <p className="text-[#64748B] text-[11px]">{r.invoiceNumber || r.invoiceNo || r.id || 'NAV-2024-001'}</p>
                   </div>
                 </div>
                 <div className="text-right">
-                  <p className="text-[#0B1527] font-bold text-[14px]">₹{(r.totalAmount || r.amt || 0).toLocaleString('en-IN')}</p>
+                  <p className="text-[#0B1527] font-bold text-[14px]">₹{(r.totalAmount || (typeof r.amt === 'string' ? parseInt(r.amt.replace(/[^0-9]/g, '')) : r.amt) || 48990).toLocaleString('en-IN')}</p>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${r.remainingAmount > 0 ? 'bg-[#FFEBEC] text-[#FF3B4A]' : 'bg-[#EDF7F0] text-[#2BB159]'}`}>
                     {r.remainingAmount > 0 ? 'Pending EMI' : 'Paid'}
                   </span>
@@ -208,34 +252,6 @@ const CustomersSection = () => {
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
     let list = saved ? JSON.parse(saved) : [];
-
-    const DEMO_HRITIK = {
-      id: 'usr-hritik-demo',
-      name: 'Hritik Kumar',
-      mobile: '+91 99318 42478',
-      email: 'hritik@gmail.com',
-      points: 950,
-      vip: true,
-      outstanding: 0,
-      spent: 48990,
-      rewardProgress: 48990,
-      joinedDate: '10 Oct 2024',
-      loyaltyCardNumber: 'NAV-2024-8849',
-      purchases: [
-        {
-          id: 'NAV-2024-001',
-          item: 'Sony Bravia 50" 4K Smart Google TV',
-          amt: '₹48,990',
-          date: '10 Oct 2024',
-          status: 'Paid',
-          method: 'UPI / Online',
-        }
-      ],
-      pointHistory: [
-        { date: '10 Oct 2024', type: 'earn', pts: 489, reason: 'Purchase Reward Points', by: 'System' },
-        { date: '10 Oct 2024', type: 'bonus', pts: 461, reason: 'VIP Welcome Bonus', by: 'System' },
-      ],
-    };
 
     // Ensure Hritik Kumar is in the list
     const hasHritik = list.some(c => c && (c.email === 'hritik@gmail.com' || c.name === 'Hritik Kumar'));
