@@ -97,11 +97,7 @@ export const LoginScreen = () => {
     try {
       setLoadingText('Authenticating Session...');
       setLoading(true);
-      const minDelay = new Promise((resolve) => setTimeout(resolve, 1100));
-      await Promise.all([
-        handleSignIn({ email: signInEmail, password: signInPassword }),
-        minDelay
-      ]);
+      await handleSignIn({ email: signInEmail, password: signInPassword });
     } catch (err) {
       showToast(err.message || 'Failed to sign in', 'error');
     } finally {
@@ -133,11 +129,7 @@ export const LoginScreen = () => {
     try {
       setLoadingText('Sending Verification Code to Gmail...');
       setLoading(true);
-      const minDelay = new Promise((resolve) => setTimeout(resolve, 900));
-      const [res] = await Promise.all([
-        handleSendEmailOtp(signUpEmail, 'signup'),
-        minDelay
-      ]);
+      const res = await handleSendEmailOtp(signUpEmail, 'signup');
 
       setSignUpStep('otp');
       setResendTimer(45);
@@ -167,17 +159,13 @@ export const LoginScreen = () => {
     try {
       setLoadingText('Verifying Gmail & Initializing VIP Profile...');
       setLoading(true);
-      const minDelay = new Promise((resolve) => setTimeout(resolve, 1100));
-      await Promise.all([
-        handleSignUp({
-          name: signUpName,
-          mobile: signUpMobile,
-          email: signUpEmail,
-          password: signUpPassword,
-          otp: fullOtp,
-        }),
-        minDelay
-      ]);
+      await handleSignUp({
+        name: signUpName,
+        mobile: signUpMobile,
+        email: signUpEmail,
+        password: signUpPassword,
+        otp: fullOtp,
+      });
     } catch (err) {
       showToast(err.message || 'Failed to create account', 'error');
     } finally {

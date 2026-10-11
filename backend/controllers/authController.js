@@ -102,10 +102,25 @@ const sendEmailOtp = asyncHandler(async (req, res) => {
     otp: otpCode,
   });
 
-  // Send email via nodemailer
+  const isLive = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+  if (isLive) {
+    // Send email immediately via warm pooled connection in background for instant <50ms response
+    sendOtpEmail(cleanEmail, otpCode, type).catch((err) => {
+      console.error(`[EMAIL DISPATCH ERROR] Could not send OTP to ${cleanEmail}:`, err.message);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Verification OTP has been sent to ${cleanEmail}`,
+      email: cleanEmail,
+    });
+  }
+
+  // Fallback / simulation mode
   const sendResult = await sendOtpEmail(cleanEmail, otpCode, type);
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: `Verification OTP has been sent to ${cleanEmail}`,
     email: cleanEmail,
@@ -261,9 +276,23 @@ const forgotPassword = asyncHandler(async (req, res) => {
   await Otp.deleteMany({ email: cleanEmail });
   await Otp.create({ email: cleanEmail, otp: otpCode });
 
+  const isLive = Boolean(process.env.EMAIL_USER && process.env.EMAIL_PASS);
+
+  if (isLive) {
+    sendOtpEmail(cleanEmail, otpCode, 'forgot_password').catch((err) => {
+      console.error(`[EMAIL DISPATCH ERROR] Could not send OTP to ${cleanEmail}:`, err.message);
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: `Password reset OTP has been sent to ${cleanEmail}`,
+      email: cleanEmail,
+    });
+  }
+
   const sendResult = await sendOtpEmail(cleanEmail, otpCode, 'forgot_password');
 
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: `Password reset OTP has been sent to ${cleanEmail}`,
     email: cleanEmail,

@@ -5,7 +5,13 @@ const nodemailer = require('nodemailer');
  * Works with Gmail or any custom SMTP provider.
  * When EMAIL_USER & EMAIL_PASS are set in .env, sends real emails.
  */
+let cachedTransporter = null;
+
 const getTransporter = () => {
+  if (cachedTransporter) {
+    return cachedTransporter;
+  }
+
   const user = process.env.EMAIL_USER || process.env.GMAIL_USER;
   const pass = process.env.EMAIL_PASS || process.env.GMAIL_APP_PASSWORD;
 
@@ -15,19 +21,30 @@ const getTransporter = () => {
 
   // If host is explicitly specified (e.g. Hostinger SMTP / Custom SMTP)
   if (process.env.SMTP_HOST) {
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
       host: process.env.SMTP_HOST,
       port: process.env.SMTP_PORT ? parseInt(process.env.SMTP_PORT) : 465,
       secure: process.env.SMTP_SECURE === 'true' || true,
       auth: { user, pass },
     });
+    return cachedTransporter;
   }
 
-  // Default: Gmail service
-  return nodemailer.createTransport({
+  // High-performance Gmail pooled transport
+  cachedTransporter = nodemailer.createTransport({
+    pool: true,
     service: 'gmail',
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 1000,
+    rateLimit: 5,
     auth: { user, pass },
   });
+
+  return cachedTransporter;
 };
 
 /**
@@ -132,7 +149,14 @@ const sendOtpEmail = async (toEmail, otp, type = 'signup') => {
     from: `"New Ajeet Vision" <${senderEmail}>`,
     to: toEmail,
     subject,
+    text: `Your New Ajeet Vision verification code is: ${otp}\n\nThis OTP is valid for 10 minutes. Please do not share it with anyone.\n\nNew Ajeet Vision\nMain Market, Main Road Obra, Aurangabad, Bihar\nHelpline: +91 6203314651`,
     html: generateOtpEmailHtml(otp, type),
+    priority: 'high',
+    headers: {
+      'X-Priority': '1 (Highest)',
+      'X-MSMail-Priority': 'High',
+      'Importance': 'High',
+    },
   };
 
   const info = await transporter.sendMail(mailOptions);
@@ -144,6 +168,20 @@ const sendOtpEmail = async (toEmail, otp, type = 'signup') => {
   };
 };
 
+const prewarmEmailTransporter = () => {
+  const transporter = getTransporter();
+  if (transporter) {
+    transporter.verify((err) => {
+      if (err) {
+        console.warn('[EMAIL SERVICE] SMTP verify warning:', err.message);
+      } else {
+        console.log('[EMAIL SERVICE] SMTP Pooled Connection Ready & Verified (Instant Delivery)');
+      }
+    });
+  }
+};
+
 module.exports = {
   sendOtpEmail,
+  prewarmEmailTransporter,
 };

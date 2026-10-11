@@ -20,6 +20,10 @@ const { notFound, errorHandler } = require('./middlewares/errorMiddleware');
 // Connect to Database (graceful)
 connectDB();
 
+// Pre-warm Email Transporter for instant zero-latency OTP dispatch
+const { prewarmEmailTransporter } = require('./utils/emailService');
+prewarmEmailTransporter();
+
 const app = express();
 
 const path = require('path');
