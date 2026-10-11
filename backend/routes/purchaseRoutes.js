@@ -2,12 +2,15 @@ const express = require('express');
 const router = express.Router();
 const {
   createPurchase,
+  createManualPurchase,
   getMyPurchases,
   getPurchaseById,
   addPayment,
   getPurchases
 } = require('../controllers/purchaseController');
 const { protect, adminOnly } = require('../middlewares/authMiddleware');
+
+router.post('/manual', createManualPurchase);
 
 router.route('/')
   .post(protect, adminOnly, createPurchase)

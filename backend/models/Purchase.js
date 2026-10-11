@@ -4,7 +4,7 @@ const purchaseSchema = new mongoose.Schema(
   {
     customer: {
       type: mongoose.Schema.Types.ObjectId,
-      required: true,
+      required: false,
       ref: 'User',
     },
     invoiceNumber: {

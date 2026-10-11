@@ -253,6 +253,20 @@ const CustomersSection = () => {
   const [editCardNumber, setEditCardNumber] = useState('');
   const [isEditingCard, setIsEditingCard] = useState(false);
 
+  // States for adding bill / purchase
+  const [isAddingBill, setIsAddingBill] = useState(false);
+  const [billForm, setBillForm] = useState({
+    invoiceNumber: '',
+    description: '',
+    totalAmount: '',
+    paymentStatus: 'paid', // 'paid' | 'partial'
+    amountPaid: '',
+    pointsToAward: '',
+    billDate: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }),
+  });
+  const [billSaving, setBillSaving] = useState(false);
+  const [billSuccess, setBillSuccess] = useState(false);
+
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
     let list = saved ? JSON.parse(saved) : [];
@@ -381,6 +395,135 @@ const CustomersSection = () => {
     setIsEditingCard(false);
   };
 
+  const handleAddBill = async (e) => {
+    e?.preventDefault?.();
+    if (!selectedCustomer) return;
+    if (!billForm.description.trim()) {
+      alert('Please enter a description or product name.');
+      return;
+    }
+    const totalAmt = Number(billForm.totalAmount);
+    if (!totalAmt || totalAmt <= 0) {
+      alert('Please enter a valid bill amount.');
+      return;
+    }
+
+    setBillSaving(true);
+
+    const paidAmt = billForm.paymentStatus === 'paid' ? totalAmt : Number(billForm.amountPaid || 0);
+    const dueAmt = Math.max(0, totalAmt - paidAmt);
+    const pts = Number(billForm.pointsToAward || 0);
+    const invNo = billForm.invoiceNumber.trim() || `VYP-${Date.now().toString().slice(-4)}`;
+    const billDate = billForm.billDate || new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' });
+
+    const newPurchase = {
+      id: invNo,
+      invoiceNumber: invNo,
+      invoiceNo: invNo,
+      name: selectedCustomer.name,
+      item: billForm.description.trim(),
+      items: billForm.description.trim(),
+      amount: totalAmt,
+      totalAmount: totalAmt,
+      amt: `₹${totalAmt.toLocaleString('en-IN')}`,
+      paid: paidAmt,
+      paidAmount: paidAmt,
+      due: dueAmt,
+      remainingAmount: dueAmt,
+      date: billDate,
+      status: dueAmt > 0 ? 'Pending' : 'Paid',
+      method: dueAmt > 0 ? 'EMI / Partial' : 'Paid in Full',
+    };
+
+    // Calculate updated metrics
+    const newSpent = (Number(selectedCustomer.spent) || 0) + totalAmt;
+    const newOutstanding = (Number(selectedCustomer.outstanding) || 0) + dueAmt;
+    const newPoints = (Number(selectedCustomer.points) || 0) + pts;
+    const newProgress = Math.min(100, Math.round((newSpent / 100000) * 100));
+
+    const updatedPointHistory = pts > 0 ? [
+      {
+        date: billDate,
+        type: 'earn',
+        pts: pts,
+        reason: `Vyapar Bill: ${billForm.description.trim()} (${invNo})`,
+        by: 'Admin'
+      },
+      ...(selectedCustomer.pointHistory || [])
+    ] : (selectedCustomer.pointHistory || []);
+
+    const updatedPurchases = [newPurchase, ...(selectedCustomer.purchases || [])];
+
+    const updatedCustomer = {
+      ...selectedCustomer,
+      spent: newSpent,
+      outstanding: newOutstanding,
+      points: newPoints,
+      rewardProgress: newProgress,
+      purchases: updatedPurchases,
+      pointHistory: updatedPointHistory,
+    };
+
+    // Update state & localStorage
+    const updatedList = customers.map(cust => cust.id === selectedCustomer.id ? updatedCustomer : cust);
+    setCustomers(updatedList);
+    setSelectedCustomer(updatedCustomer);
+    localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(updatedList));
+
+    // If active user profile matches this customer, sync so their app views update in real time
+    const activeUser = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
+    if (activeUser && (
+      (activeUser.email && selectedCustomer.email && activeUser.email.toLowerCase() === selectedCustomer.email.toLowerCase()) ||
+      (activeUser.name && activeUser.name.toLowerCase() === selectedCustomer.name.toLowerCase()) ||
+      (activeUser.mobile && selectedCustomer.mobile && activeUser.mobile.replace(/\D/g, '') === selectedCustomer.mobile.replace(/\D/g, ''))
+    )) {
+      activeUser.loyaltyPoints = newPoints;
+      activeUser.rewardProgress = {
+        currentAmount: newSpent,
+        targetAmount: 100000,
+        isUnlocked: newSpent >= 100000,
+      };
+      localStorage.setItem('nav_user_profile', JSON.stringify(activeUser));
+      localStorage.setItem('nav_loyalty_pts', JSON.stringify(newPoints));
+    }
+
+    // Also notify backend API to record in MongoDB
+    try {
+      await fetch('/api/purchases/manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedCustomer._id || selectedCustomer.id,
+          customerMobile: selectedCustomer.mobile,
+          customerEmail: selectedCustomer.email,
+          invoiceNumber: invNo,
+          description: billForm.description.trim(),
+          totalAmount: totalAmt,
+          amountPaid: paidAmt,
+          pointsAwarded: pts,
+        })
+      });
+    } catch (apiErr) {
+      console.warn('API purchase sync note:', apiErr);
+    }
+
+    setBillSaving(false);
+    setBillSuccess(true);
+    setTimeout(() => {
+      setBillSuccess(false);
+      setIsAddingBill(false);
+      setBillForm({
+        invoiceNumber: '',
+        description: '',
+        totalAmount: '',
+        paymentStatus: 'paid',
+        amountPaid: '',
+        pointsToAward: '',
+        billDate: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }),
+      });
+    }, 1200);
+  };
+
   // ─── Customer Detail View ───
   if (selectedCustomer) {
     const c = selectedCustomer;
@@ -490,7 +633,234 @@ const CustomersSection = () => {
 
         {/* Purchases */}
         <SectionCard>
-          <SectionHeader title="Purchase History" subtitle={`${customerPurchases.length} bills`} />
+          <SectionHeader 
+            title="Purchase History" 
+            subtitle={`${customerPurchases.length} bills recorded`} 
+            action={
+              <button 
+                onClick={() => {
+                  setBillForm({
+                    invoiceNumber: `VYP-${Date.now().toString().slice(-4)}`,
+                    description: '',
+                    totalAmount: '',
+                    paymentStatus: 'paid',
+                    amountPaid: '',
+                    pointsToAward: '',
+                    billDate: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }),
+                  });
+                  setIsAddingBill(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-[12px] bg-gradient-to-r from-[#FF3B4A] to-[#E51020] text-white text-[12px] font-bold shadow-sm hover:shadow-md hover:shadow-red-200 transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Bill / Purchase
+              </button>
+            }
+          />
+
+          {/* Add Purchase / Bill Modal */}
+          {isAddingBill && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
+              <div className="bg-white rounded-[24px] max-w-lg w-full p-6 shadow-2xl border border-[#F1E5DB] max-h-[90vh] overflow-y-auto">
+                <div className="flex items-center justify-between pb-4 border-b border-[#F1E5DB]">
+                  <div>
+                    <h3 className="text-[#0B1527] font-extrabold text-[18px]">Add Customer Purchase</h3>
+                    <p className="text-[#64748B] text-[12px] mt-0.5">Recording for: <span className="font-bold text-[#0B1527]">{c.name}</span> ({c.mobile || c.email})</p>
+                  </div>
+                  <button 
+                    onClick={() => setIsAddingBill(false)} 
+                    className="w-8 h-8 rounded-full bg-[#F7F8FA] flex items-center justify-center text-[#64748B] hover:text-[#0B1527] hover:bg-[#E2E8F0] transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddBill} className="space-y-4 mt-5">
+                  {/* Invoice Number & Date */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[12px] text-[#64748B] font-semibold block mb-1">Vyapar Bill No.</label>
+                      <input 
+                        type="text"
+                        placeholder="e.g. VYP-1042"
+                        value={billForm.invoiceNumber}
+                        onChange={e => setBillForm(f => ({ ...f, invoiceNumber: e.target.value.toUpperCase() }))}
+                        className="w-full bg-[#F7F8FA] border border-[#E2E8F0] rounded-[12px] px-3.5 py-2.5 text-[13px] font-mono text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[12px] text-[#64748B] font-semibold block mb-1">Bill Date</label>
+                      <input 
+                        type="text"
+                        value={billForm.billDate}
+                        onChange={e => setBillForm(f => ({ ...f, billDate: e.target.value }))}
+                        className="w-full bg-[#F7F8FA] border border-[#E2E8F0] rounded-[12px] px-3.5 py-2.5 text-[13px] text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Description / Item */}
+                  <div>
+                    <label className="text-[12px] text-[#64748B] font-semibold block mb-1">Product Description / Items <span className="text-[#FF3B4A]">*</span></label>
+                    <input 
+                      type="text"
+                      required
+                      placeholder="e.g. Samsung 43 Inch 4K Smart TV / Havells Fan"
+                      value={billForm.description}
+                      onChange={e => setBillForm(f => ({ ...f, description: e.target.value }))}
+                      className="w-full bg-[#F7F8FA] border border-[#E2E8F0] rounded-[12px] px-3.5 py-2.5 text-[13px] text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                    />
+                  </div>
+
+                  {/* Bill Amount */}
+                  <div>
+                    <label className="text-[12px] text-[#64748B] font-semibold block mb-1">Total Bill Amount (₹) <span className="text-[#FF3B4A]">*</span></label>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-[#64748B] font-bold text-[14px]">₹</span>
+                      <input 
+                        type="number"
+                        required
+                        min="1"
+                        placeholder="e.g. 35000"
+                        value={billForm.totalAmount}
+                        onChange={e => setBillForm(f => ({ ...f, totalAmount: e.target.value }))}
+                        className="w-full bg-[#F7F8FA] border border-[#E2E8F0] rounded-[12px] pl-8 pr-3.5 py-2.5 text-[15px] font-bold text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Payment Status Switcher */}
+                  <div>
+                    <label className="text-[12px] text-[#64748B] font-semibold block mb-1.5">Payment Status</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setBillForm(f => ({ ...f, paymentStatus: 'paid', amountPaid: '' }))}
+                        className={`py-2 px-3 rounded-[12px] text-[12px] font-bold border transition-all ${
+                          billForm.paymentStatus === 'paid'
+                            ? 'bg-[#EDF7F0] border-[#2BB159] text-[#2BB159]'
+                            : 'bg-[#F7F8FA] border-[#E2E8F0] text-[#64748B]'
+                        }`}
+                      >
+                        ✓ Paid in Full
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setBillForm(f => ({ ...f, paymentStatus: 'partial', amountPaid: f.amountPaid || '0' }))}
+                        className={`py-2 px-3 rounded-[12px] text-[12px] font-bold border transition-all ${
+                          billForm.paymentStatus === 'partial'
+                            ? 'bg-[#FFEBEC] border-[#FF3B4A] text-[#FF3B4A]'
+                            : 'bg-[#F7F8FA] border-[#E2E8F0] text-[#64748B]'
+                        }`}
+                      >
+                        ⚠️ Partial / EMI Due
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Partial / EMI Fields */}
+                  {billForm.paymentStatus === 'partial' && (
+                    <div className="bg-[#FFF5F5] border border-[#FFD0D4] rounded-[14px] p-3.5 space-y-2.5">
+                      <div>
+                        <label className="text-[11px] text-[#64748B] font-semibold block mb-1">Amount Paid Now (₹)</label>
+                        <input 
+                          type="number"
+                          min="0"
+                          placeholder="e.g. 10000"
+                          value={billForm.amountPaid}
+                          onChange={e => setBillForm(f => ({ ...f, amountPaid: e.target.value }))}
+                          className="w-full bg-white border border-[#E2E8F0] rounded-[10px] px-3 py-2 text-[13px] font-bold text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                        />
+                      </div>
+                      <div className="flex justify-between items-center text-[12px]">
+                        <span className="text-[#64748B]">Remaining Outstanding Due:</span>
+                        <span className="font-extrabold text-[#FF3B4A]">
+                          ₹{Math.max(0, (Number(billForm.totalAmount) || 0) - (Number(billForm.amountPaid) || 0)).toLocaleString('en-IN')}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Manual Loyalty Points */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-[12px] text-[#64748B] font-semibold">Loyalty Points to Award (Manual)</label>
+                      <span className="text-[11px] text-[#F59E0B] font-medium">Leave 0 if none</span>
+                    </div>
+                    <div className="relative">
+                      <span className="absolute left-3.5 top-2.5 text-[#F59E0B] font-bold text-[14px]">⭐</span>
+                      <input 
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 350"
+                        value={billForm.pointsToAward}
+                        onChange={e => setBillForm(f => ({ ...f, pointsToAward: e.target.value }))}
+                        className="w-full bg-[#F7F8FA] border border-[#E2E8F0] rounded-[12px] pl-9 pr-3.5 py-2.5 text-[14px] font-bold text-[#0B1527] focus:outline-none focus:border-[#FF3B4A]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Real-time Target Progress & Impact Preview */}
+                  {Number(billForm.totalAmount) > 0 && (
+                    <div className="bg-[#F7F8FA] border border-[#E2E8F0] rounded-[16px] p-4 space-y-2">
+                      <p className="text-[11px] font-bold text-[#64748B] uppercase tracking-wider">Preview of Impact</p>
+                      <div className="grid grid-cols-3 gap-2 text-center">
+                        <div className="bg-white p-2 rounded-[10px] border border-[#E2E8F0]">
+                          <p className="text-[10px] text-[#64748B]">New Spent</p>
+                          <p className="text-[13px] font-extrabold text-[#0B1527]">
+                            ₹{(customerSpent + (Number(billForm.totalAmount) || 0)).toLocaleString('en-IN')}
+                          </p>
+                        </div>
+                        <div className="bg-white p-2 rounded-[10px] border border-[#E2E8F0]">
+                          <p className="text-[10px] text-[#64748B]">₹1L Target</p>
+                          <p className="text-[13px] font-extrabold text-[#FF3B4A]">
+                            {Math.min(100, Math.round(((customerSpent + (Number(billForm.totalAmount) || 0)) / 100000) * 100))}%
+                          </p>
+                        </div>
+                        <div className="bg-white p-2 rounded-[10px] border border-[#E2E8F0]">
+                          <p className="text-[10px] text-[#64748B]">New Balance</p>
+                          <p className="text-[13px] font-extrabold text-[#F59E0B]">
+                            {customerPoints + (Number(billForm.pointsToAward) || 0)} pts
+                          </p>
+                        </div>
+                      </div>
+                      {customerSpent + (Number(billForm.totalAmount) || 0) >= 100000 && (
+                        <div className="bg-[#EDF7F0] text-[#2BB159] text-[11px] font-bold p-2 rounded-[8px] text-center">
+                          🎉 Milestone Reached: Customer unlocks ₹1 Lakh Reward Gift!
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Success feedback */}
+                  {billSuccess && (
+                    <div className="bg-[#EDF7F0] border border-[#D5EEDB] rounded-[12px] p-3 text-center text-[#2BB159] font-bold text-[13px] flex items-center justify-center gap-2">
+                      <Check className="w-4 h-4" />
+                      Bill Recorded & Target Progress Updated!
+                    </div>
+                  )}
+
+                  {/* Form Buttons */}
+                  <div className="flex gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsAddingBill(false)}
+                      className="flex-1 py-3 rounded-[12px] border border-[#E2E8F0] font-bold text-[13px] text-[#64748B] hover:bg-[#F7F8FA]"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={billSaving || !billForm.description.trim() || !billForm.totalAmount}
+                      className="flex-1 py-3 rounded-[12px] bg-gradient-to-r from-[#FF3B4A] to-[#E51020] text-white font-bold text-[13px] shadow hover:shadow-lg hover:shadow-red-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2"
+                    >
+                      {billSaving ? 'Saving...' : 'Save Bill & Update Target'}
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
           <div className="divide-y divide-[#F7F8FA]">
             {customerPurchases.length > 0 ? (
               customerPurchases.map((p, idx) => {

@@ -156,6 +156,78 @@ const addPayment = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Admin: Create manual showroom / Vyapar bill for customer
+// @route   POST /api/purchases/manual
+// @access  Public / Admin
+const createManualPurchase = asyncHandler(async (req, res) => {
+  const { customerId, customerMobile, customerEmail, invoiceNumber, description, totalAmount, amountPaid, pointsAwarded } = req.body;
+
+  let user = null;
+  if (customerId && customerId.match(/^[0-9a-fA-F]{24}$/)) {
+    user = await User.findById(customerId);
+  }
+  if (!user && customerEmail) {
+    user = await User.findOne({ email: customerEmail.toLowerCase() });
+  }
+  if (!user && customerMobile) {
+    user = await User.findOne({ mobile: customerMobile });
+  }
+
+  const amt = Number(totalAmount) || 0;
+  const paid = amountPaid !== undefined ? Number(amountPaid) : amt;
+  const remaining = Math.max(0, amt - paid);
+  const inv = (invoiceNumber || `VYP-${Date.now().toString().slice(-4)}`).trim();
+
+  // Create or update purchase record
+  let purchase = await Purchase.findOne({ invoiceNumber: inv });
+  if (purchase) {
+    purchase.totalAmount = amt;
+    purchase.amountPaid = paid;
+    purchase.remainingAmount = remaining;
+    purchase.products = [{ name: description || 'Showroom Purchase', quantity: 1, price: amt }];
+    await purchase.save();
+  } else {
+    purchase = await Purchase.create({
+      customer: user ? user._id : undefined,
+      invoiceNumber: inv,
+      products: [
+        {
+          name: description || 'Showroom Purchase',
+          quantity: 1,
+          price: amt,
+        }
+      ],
+      totalAmount: amt,
+      amountPaid: paid,
+      remainingAmount: remaining,
+      paymentHistory: [
+        {
+          amount: paid,
+          method: remaining > 0 ? 'EMI / Partial' : 'Paid',
+          date: new Date(),
+        }
+      ],
+      purchaseDate: new Date(),
+    });
+  }
+
+  if (user) {
+    // Add manual loyalty points if provided
+    if (Number(pointsAwarded) > 0) {
+      user.loyaltyPoints = (user.loyaltyPoints || 0) + Number(pointsAwarded);
+    }
+    // Update target progress
+    user.rewardProgress = user.rewardProgress || { currentAmount: 0, targetAmount: 100000, isUnlocked: false };
+    user.rewardProgress.currentAmount = (user.rewardProgress.currentAmount || 0) + amt;
+    if (user.rewardProgress.currentAmount >= (user.rewardProgress.targetAmount || 100000)) {
+      user.rewardProgress.isUnlocked = true;
+    }
+    await user.save();
+  }
+
+  res.status(201).json({ success: true, purchase, user });
+});
+
 // @desc    Get all purchases (Admin)
 // @route   GET /api/purchases
 // @access  Private/Admin
@@ -166,6 +238,7 @@ const getPurchases = asyncHandler(async (req, res) => {
 
 module.exports = {
   createPurchase,
+  createManualPurchase,
   getMyPurchases,
   getPurchaseById,
   addPayment,
