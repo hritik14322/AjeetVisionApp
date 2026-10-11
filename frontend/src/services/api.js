@@ -40,23 +40,28 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'nav_notifications',
 };
 
-// Initialize LocalStorage: clean legacy 'Hritik Kumar' mock data and ensure clean slate
+// Initialize LocalStorage: Seed demo user in nav_users_db for testing
 const initStorage = () => {
-  const existingUser = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-  if (existingUser) {
-    try {
-      const parsed = JSON.parse(existingUser);
-      if (parsed && (parsed.name === 'Hritik Kumar' || parsed.email === 'hritik.kumar@example.com')) {
-        localStorage.removeItem(STORAGE_KEYS.CURRENT_USER);
-        localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
-        localStorage.removeItem(STORAGE_KEYS.PURCHASES);
-        localStorage.removeItem(STORAGE_KEYS.LOYALTY_PTS);
-        localStorage.removeItem(STORAGE_KEYS.LOYALTY_TXNS);
-        localStorage.removeItem(STORAGE_KEYS.REWARD_STATE);
-        localStorage.removeItem(STORAGE_KEYS.WISHLIST);
-      }
-    } catch (e) {}
-  }
+  try {
+    const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+    if (!usersDb.some((u) => u.email === 'hritik@gmail.com')) {
+      usersDb.push({
+        id: 'usr-hritik-demo',
+        _id: '6acb8ece171b2e865f2bf9a6',
+        name: 'Hritik Kumar',
+        email: 'hritik@gmail.com',
+        mobile: '+91 99318 42478',
+        rawMobile: '9931842478',
+        password: 'password123',
+        role: 'customer',
+        isVerified: true,
+        isVipMember: true,
+        loyaltyPoints: 950,
+        loyaltyCardNumber: 'NAV-2024-8849',
+      });
+      localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+    }
+  } catch (e) {}
 };
 
 initStorage();

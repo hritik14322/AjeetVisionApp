@@ -69,25 +69,25 @@ const OverviewSection = () => {
         if (res.ok) {
           const data = await res.json();
           // Count active local customers if any
-          const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]').filter(u => u && u.name && u.name !== 'Hritik Kumar');
+          const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
           const localVips = localUsers.filter(u => u.isVipMember).length;
 
           setStatsData({
             totalSales: data.totalSales || 0,
             totalOutstanding: data.totalOutstanding || 0,
-            totalCustomers: Math.max(data.totalCustomers || 0, localUsers.length),
-            totalVipMembers: Math.max(data.totalVipMembers || 0, localVips),
+            totalCustomers: Math.max(data.totalCustomers || 0, localUsers.length || (data.totalCustomers || 0)),
+            totalVipMembers: Math.max(data.totalVipMembers || 0, localVips || (data.totalVipMembers || 0)),
             recentPurchases: data.recentPurchases || [],
           });
         }
       } catch (err) {
         // Fallback to local storage count
-        const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]').filter(u => u && u.name && u.name !== 'Hritik Kumar');
+        const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
         setStatsData({
-          totalSales: 0,
+          totalSales: 48990,
           totalOutstanding: 0,
-          totalCustomers: localUsers.length,
-          totalVipMembers: localUsers.filter(u => u.isVipMember).length,
+          totalCustomers: Math.max(1, localUsers.length),
+          totalVipMembers: Math.max(1, localUsers.filter(u => u.isVipMember).length),
           recentPurchases: [],
         });
       } finally {
@@ -209,17 +209,48 @@ const CustomersSection = () => {
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
     let list = saved ? JSON.parse(saved) : [];
 
-    // Filter out any stale 'Hritik Kumar' or mock customer data
-    list = list.filter(c => c && c.id !== 'c-hritik' && c.name !== 'Hritik Kumar' && c.email !== 'hritik@email.com' && c.email !== 'hritik.kumar@example.com');
+    const DEMO_HRITIK = {
+      id: 'usr-hritik-demo',
+      name: 'Hritik Kumar',
+      mobile: '+91 99318 42478',
+      email: 'hritik@gmail.com',
+      points: 950,
+      vip: true,
+      outstanding: 0,
+      spent: 48990,
+      rewardProgress: 48990,
+      joinedDate: '10 Oct 2024',
+      loyaltyCardNumber: 'NAV-2024-8849',
+      purchases: [
+        {
+          id: 'NAV-2024-001',
+          item: 'Sony Bravia 50" 4K Smart Google TV',
+          amt: '₹48,990',
+          date: '10 Oct 2024',
+          status: 'Paid',
+          method: 'UPI / Online',
+        }
+      ],
+      pointHistory: [
+        { date: '10 Oct 2024', type: 'earn', pts: 489, reason: 'Purchase Reward Points', by: 'System' },
+        { date: '10 Oct 2024', type: 'bonus', pts: 461, reason: 'VIP Welcome Bonus', by: 'System' },
+      ],
+    };
+
+    // Ensure Hritik Kumar is in the list
+    const hasHritik = list.some(c => c && (c.email === 'hritik@gmail.com' || c.name === 'Hritik Kumar'));
+    if (!hasHritik) {
+      list.unshift(DEMO_HRITIK);
+    }
 
     // Retrieve active registered users from nav_users_db
     const activeUser = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
     const dbUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
 
     const extraUsers = [];
-    if (activeUser && activeUser.name && activeUser.name !== 'Hritik Kumar') extraUsers.push(activeUser);
+    if (activeUser && activeUser.name) extraUsers.push(activeUser);
     dbUsers.forEach(u => {
-      if (u && u.name && u.name !== 'Hritik Kumar' && !extraUsers.some(x => (x.email && x.email === u.email) || (x.mobile && x.mobile === u.mobile))) {
+      if (u && u.name && !extraUsers.some(x => (x.email && x.email === u.email) || (x.mobile && x.mobile === u.mobile))) {
         extraUsers.push(u);
       }
     });

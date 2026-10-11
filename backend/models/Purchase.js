@@ -16,7 +16,7 @@ const purchaseSchema = new mongoose.Schema(
       {
         product: {
           type: mongoose.Schema.Types.ObjectId,
-          required: true,
+          required: false,
           ref: 'Product',
         },
         name: { type: String, required: true },
