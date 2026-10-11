@@ -53,19 +53,90 @@ const Btn = ({ children, onClick, variant = 'primary', size = 'md', className = 
 
 // ── SECTION: Overview
 const OverviewSection = () => {
-  const stats = [
-    { label: 'Total Sales',      value: '₹24.5L', sub: '+12% this month', icon: TrendingUp, bg: 'bg-[#E8EDF4]',  ic: 'text-[#0B1527]' },
-    { label: 'Outstanding',      value: '₹1.2L',  sub: '8 pending bills',  icon: CreditCard,  bg: 'bg-[#FFEBEC]',  ic: 'text-[#FF3B4A]' },
-    { label: 'Total Customers',  value: '1,250',  sub: '+32 this week',   icon: Users,       bg: 'bg-[#EBF3FF]',  ic: 'text-[#3B82F6]' },
-    { label: 'VIP Members',      value: '340',    sub: '₹499/yr each',    icon: Crown,       bg: 'bg-[#FEF5E7]',  ic: 'text-[#F59E0B]' },
-  ];
+  const [statsData, setStatsData] = useState({
+    totalSales: 0,
+    totalOutstanding: 0,
+    totalCustomers: 0,
+    totalVipMembers: 0,
+    recentPurchases: [],
+  });
+  const [loadingStats, setLoadingStats] = useState(true);
 
-  const recent = [
-    { name: 'Rahul Sharma',  id: 'NAV-001', amt: '₹45,000', status: 'Paid',    tag: 'bg-[#EDF7F0] text-[#2BB159]' },
-    { name: 'Sneha Gupta',   id: 'NAV-002', amt: '₹85,000', status: 'EMI',     tag: 'bg-[#FEF5E7] text-[#F59E0B]' },
-    { name: 'Amit Patel',    id: 'NAV-003', amt: '₹12,000', status: 'Pending', tag: 'bg-[#FFEBEC] text-[#FF3B4A]' },
-    { name: 'Priya Singh',   id: 'NAV-004', amt: '₹32,500', status: 'Paid',    tag: 'bg-[#EDF7F0] text-[#2BB159]' },
-    { name: 'Vikram Das',    id: 'NAV-005', amt: '₹18,000', status: 'Pending', tag: 'bg-[#FFEBEC] text-[#FF3B4A]' },
+  React.useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/admin/dashboard/stats');
+        if (res.ok) {
+          const data = await res.json();
+          // Count active local customers if any
+          const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]').filter(u => u && u.name && u.name !== 'Hritik Kumar');
+          const localVips = localUsers.filter(u => u.isVipMember).length;
+
+          setStatsData({
+            totalSales: data.totalSales || 0,
+            totalOutstanding: data.totalOutstanding || 0,
+            totalCustomers: Math.max(data.totalCustomers || 0, localUsers.length),
+            totalVipMembers: Math.max(data.totalVipMembers || 0, localVips),
+            recentPurchases: data.recentPurchases || [],
+          });
+        }
+      } catch (err) {
+        // Fallback to local storage count
+        const localUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]').filter(u => u && u.name && u.name !== 'Hritik Kumar');
+        setStatsData({
+          totalSales: 0,
+          totalOutstanding: 0,
+          totalCustomers: localUsers.length,
+          totalVipMembers: localUsers.filter(u => u.isVipMember).length,
+          recentPurchases: [],
+        });
+      } finally {
+        setLoadingStats(false);
+      }
+    };
+
+    fetchStats();
+  }, []);
+
+  const formatCurrency = (amt) => {
+    if (!amt || amt === 0) return '₹0';
+    if (amt >= 100000) return `₹${(amt / 100000).toFixed(1)}L`;
+    return `₹${amt.toLocaleString('en-IN')}`;
+  };
+
+  const stats = [
+    { 
+      label: 'Total Sales', 
+      value: formatCurrency(statsData.totalSales), 
+      sub: statsData.totalSales > 0 ? '+12% this month' : 'No sales recorded yet', 
+      icon: TrendingUp, 
+      bg: 'bg-[#E8EDF4]', 
+      ic: 'text-[#0B1527]' 
+    },
+    { 
+      label: 'Outstanding', 
+      value: formatCurrency(statsData.totalOutstanding), 
+      sub: statsData.totalOutstanding > 0 ? 'Pending bills active' : '0 pending bills', 
+      icon: CreditCard, 
+      bg: 'bg-[#FFEBEC]', 
+      ic: 'text-[#FF3B4A]' 
+    },
+    { 
+      label: 'Total Customers', 
+      value: statsData.totalCustomers.toString(), 
+      sub: statsData.totalCustomers > 0 ? `${statsData.totalCustomers} registered` : '0 registered users', 
+      icon: Users, 
+      bg: 'bg-[#EBF3FF]', 
+      ic: 'text-[#3B82F6]' 
+    },
+    { 
+      label: 'VIP Members', 
+      value: statsData.totalVipMembers.toString(), 
+      sub: statsData.totalVipMembers > 0 ? `${statsData.totalVipMembers} active members` : '0 active VIPs', 
+      icon: Crown, 
+      bg: 'bg-[#FEF5E7]', 
+      ic: 'text-[#F59E0B]' 
+    },
   ];
 
   return (
@@ -85,25 +156,39 @@ const OverviewSection = () => {
 
       <SectionCard>
         <SectionHeader title="Recent Bills" />
-        <div className="divide-y divide-[#F7F8FA]">
-          {recent.map(r => (
-            <div key={r.id} className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-full bg-[#F1E5DB] flex items-center justify-center font-bold text-[#0B1527] text-[14px]">
-                  {r.name[0]}
+        {statsData.recentPurchases && statsData.recentPurchases.length > 0 ? (
+          <div className="divide-y divide-[#F7F8FA]">
+            {statsData.recentPurchases.map(r => (
+              <div key={r._id || r.invoiceNo} className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-full bg-[#F1E5DB] flex items-center justify-center font-bold text-[#0B1527] text-[14px]">
+                    {(r.customer?.name || r.name || 'C')[0]}
+                  </div>
+                  <div>
+                    <p className="text-[#0B1527] font-semibold text-[14px]">{r.customer?.name || r.name || 'Customer'}</p>
+                    <p className="text-[#64748B] text-[11px]">{r.invoiceNo || r.id || 'INV'}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-[#0B1527] font-semibold text-[14px]">{r.name}</p>
-                  <p className="text-[#64748B] text-[11px]">{r.id}</p>
+                <div className="text-right">
+                  <p className="text-[#0B1527] font-bold text-[14px]">₹{(r.totalAmount || r.amt || 0).toLocaleString('en-IN')}</p>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${r.remainingAmount > 0 ? 'bg-[#FFEBEC] text-[#FF3B4A]' : 'bg-[#EDF7F0] text-[#2BB159]'}`}>
+                    {r.remainingAmount > 0 ? 'Pending EMI' : 'Paid'}
+                  </span>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-[#0B1527] font-bold text-[14px]">{r.amt}</p>
-                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-md ${r.tag}`}>{r.status}</span>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="py-12 px-4 text-center flex flex-col items-center justify-center">
+            <div className="w-12 h-12 rounded-2xl bg-[#F7F8FA] flex items-center justify-center text-[#64748B] mb-3 border border-[#E2E8F0]">
+              <CreditCard className="w-6 h-6 text-[#94A3B8]" />
             </div>
-          ))}
-        </div>
+            <p className="text-[#0B1527] font-bold text-[15px]">No Bills Generated Yet</p>
+            <p className="text-[#64748B] text-[12px] mt-1 max-w-sm">
+              All customer and purchase records in the database are currently 0. When customers purchase products in the showroom or via the app, invoices will automatically show up here.
+            </p>
+          </div>
+        )}
       </SectionCard>
     </div>
   );
