@@ -9,7 +9,6 @@ import {
   X, 
   KeyRound, 
   ShieldCheck, 
-  Sparkles,
   Loader2
 } from 'lucide-react';
 
@@ -150,27 +149,25 @@ export const LoginScreen = () => {
         {/* Glassmorphic Container Card */}
         <div className="bg-white/15 backdrop-blur-xl border border-white/30 rounded-[32px] p-6 sm:p-8 shadow-2xl flex flex-col items-center">
           
-          {/* Logo & Showroom Brand */}
-          <div className="flex flex-col items-center text-center">
-            <div className="relative mb-3 flex items-center justify-center">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-brand-red via-red-600 to-amber-500 flex items-center justify-center shadow-lg shadow-red-500/30 transform hover:rotate-6 transition-transform">
-                <Sparkles className="w-7 h-7 text-white" />
-              </div>
+          {/* Top Branding */}
+          <div className="flex flex-col items-center text-center pt-1">
+            <div 
+              onClick={() => navigateTo('home')}
+              className="cursor-pointer flex flex-col items-center gap-1.5 transition-transform hover:scale-105 active:scale-95"
+            >
+              <img
+                src="/nav-logo.png"
+                alt="New Ajeet Vision Logo"
+                className="w-16 h-14 object-contain drop-shadow-md mb-1"
+              />
+              <img
+                src="/nav-brand-text.png"
+                alt="New AJEET Vision"
+                className="h-8 object-contain brightness-0 invert opacity-90 drop-shadow-sm"
+              />
             </div>
 
-            <span className="text-[10px] font-black tracking-widest text-white/90 uppercase drop-shadow-md">
-              New
-            </span>
-            <div className="flex items-baseline gap-1.5 justify-center">
-              <span className="text-2xl sm:text-3xl font-black text-white tracking-tight drop-shadow-lg">
-                AJEET
-              </span>
-              <span className="text-2xl sm:text-3xl font-black text-amber-300 tracking-tight drop-shadow-lg">
-                VISION
-              </span>
-            </div>
-
-            <p className="text-xs sm:text-sm text-white/90 font-medium mt-1 max-w-xs drop-shadow-sm">
+            <p className="text-xs sm:text-sm text-white/90 font-medium mt-3 max-w-xs drop-shadow-sm">
               {authMode === 'signin'
                 ? 'Sign in to access your orders, rewards & loyalty points'
                 : 'Create your account for exclusive showroom benefits & discounts'}
