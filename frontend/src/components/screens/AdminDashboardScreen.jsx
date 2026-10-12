@@ -397,6 +397,30 @@ const CustomersSection = () => {
     setIsEditingCard(false);
   };
 
+  const handleToggleVip = async () => {
+    if (!selectedCustomer) return;
+    const targetVip = !Boolean(selectedCustomer.vip);
+
+    try {
+      await fetch('/api/admin/dashboard/customers/toggle-vip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedCustomer._id || selectedCustomer.id,
+          email: selectedCustomer.email,
+          isVip: targetVip,
+        })
+      });
+    } catch (err) {
+      console.warn('VIP toggle API error:', err);
+    }
+
+    const updated = { ...selectedCustomer, vip: targetVip, isVipMember: targetVip };
+    setSelectedCustomer(updated);
+    setCustomers(prev => prev.map(c => c.id === selectedCustomer.id ? { ...c, vip: targetVip, isVipMember: targetVip } : c));
+    setTimeout(() => fetchCustomersFromDb(), 500);
+  };
+
   const handleAddBill = async (e) => {
     e?.preventDefault?.();
     if (!selectedCustomer) return;
@@ -575,7 +599,18 @@ const CustomersSection = () => {
             <div className="flex-1">
               <div className="flex items-center gap-2 flex-wrap">
                 <h2 className="text-[#0B1527] font-extrabold text-[20px]">{c.name || 'Customer'}</h2>
-                {c.vip && <span className="bg-gradient-to-r from-[#F59E0B] to-[#D97706] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">👑 VIP</span>}
+                <button
+                  onClick={handleToggleVip}
+                  className={`text-[11px] font-bold px-2.5 py-1 rounded-full border transition flex items-center gap-1 cursor-pointer active:scale-95 ${
+                    c.vip
+                      ? 'bg-amber-50 text-amber-700 border-amber-300 hover:bg-amber-100 shadow-xs'
+                      : 'bg-gray-100 text-gray-600 border-gray-300 hover:bg-gray-200'
+                  }`}
+                  title="Click to toggle VIP Membership in MongoDB Atlas"
+                >
+                  <Crown className={`w-3 h-3 ${c.vip ? 'text-amber-500 fill-amber-400' : 'text-gray-400'}`} />
+                  {c.vip ? 'VIP Member (Active)' : 'Upgrade to VIP'}
+                </button>
               </div>
               <p className="text-[#64748B] text-[13px]">{c.mobile || 'No Mobile'} · {c.email || 'No Email'}</p>
               <p className="text-[#64748B] text-[12px]">Member since {c.joinedDate || '10 Oct 2024'}</p>

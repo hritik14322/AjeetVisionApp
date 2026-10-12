@@ -665,10 +665,22 @@ export const apiService = {
   },
 
   async joinVipClub() {
-    await delay(500);
+    await delay(300);
     const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     const user = userStr ? JSON.parse(userStr) : null;
     if (!user) throw new Error('Please sign in to join VIP Club.');
+
+    // Persist to MongoDB Atlas
+    try {
+      await fetch('/api/vip/activate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: user.email, customerId: user.id || user._id })
+      });
+    } catch (e) {
+      console.warn('VIP activation API sync:', e);
+    }
+
     user.isVipMember = true;
     const expiry = new Date();
     expiry.setFullYear(expiry.getFullYear() + 1);

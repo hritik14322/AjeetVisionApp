@@ -114,4 +114,43 @@ const giveCustomerPoints = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getDashboardStats, getDashboardCustomers, giveCustomerPoints };
+const toggleCustomerVip = asyncHandler(async (req, res) => {
+  const { customerId, email, isVip } = req.body;
+  let user = null;
+  if (customerId && customerId.length === 24) {
+    user = await User.findById(customerId);
+  }
+  if (!user && email) {
+    user = await User.findOne({ email: email.trim().toLowerCase() });
+  }
+  if (!user) {
+    res.status(404);
+    throw new Error('Customer not found in database');
+  }
+
+  const nextVip = isVip !== undefined ? Boolean(isVip) : !Boolean(user.vipMembership?.isActive);
+  user.vipMembership = user.vipMembership || {};
+  user.vipMembership.isActive = nextVip;
+  if (nextVip) {
+    const expiry = new Date();
+    expiry.setFullYear(expiry.getFullYear() + 1);
+    user.vipMembership.expiryDate = expiry;
+  }
+  await user.save();
+
+  res.json({
+    success: true,
+    message: `${user.name} VIP status is now ${nextVip ? 'ACTIVE' : 'INACTIVE'}`,
+    vip: nextVip,
+    isVipMember: nextVip,
+    customer: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      vip: nextVip,
+      isVipMember: nextVip,
+    }
+  });
+});
+
+module.exports = { getDashboardStats, getDashboardCustomers, giveCustomerPoints, toggleCustomerVip };

@@ -85,8 +85,46 @@ const getVipStatus = asyncHandler(async (req, res) => {
   res.json(user.vipMembership);
 });
 
+// @desc    Activate VIP Directly for customer
+// @route   POST /api/vip/activate
+// @access  Public / User
+const activateVipDirectly = asyncHandler(async (req, res) => {
+  const { email, customerId } = req.body;
+  let user = null;
+  if (req.user) {
+    user = await User.findById(req.user._id);
+  }
+  if (!user && customerId && customerId.length === 24) {
+    user = await User.findById(customerId);
+  }
+  if (!user && email) {
+    user = await User.findOne({ email: email.toLowerCase() });
+  }
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  const expiry = new Date();
+  expiry.setFullYear(expiry.getFullYear() + 1);
+  user.vipMembership = {
+    isActive: true,
+    expiryDate: expiry,
+  };
+  user.loyaltyPoints = (user.loyaltyPoints || 0) + 500;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'VIP Membership Activated Successfully in MongoDB Atlas!',
+    vipMembership: user.vipMembership,
+    loyaltyPoints: user.loyaltyPoints,
+  });
+});
+
 module.exports = {
   createVipOrder,
   verifyVipPayment,
   getVipStatus,
+  activateVipDirectly,
 };

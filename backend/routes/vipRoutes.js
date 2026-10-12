@@ -4,9 +4,11 @@ const {
   createVipOrder,
   verifyVipPayment,
   getVipStatus,
+  activateVipDirectly,
 } = require('../controllers/vipController');
 const { protect } = require('../middlewares/authMiddleware');
 
+router.post('/activate', activateVipDirectly);
 router.post('/create-order', protect, createVipOrder);
 router.post('/verify-payment', protect, verifyVipPayment);
 router.get('/status', protect, getVipStatus);
