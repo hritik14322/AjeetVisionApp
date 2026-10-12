@@ -13,6 +13,7 @@ import {
   Bell,
   CreditCard,
   Cake,
+  Gift,
   Settings,
   LogOut,
   Sparkles,
@@ -171,7 +172,39 @@ export const ProfileScreen = () => {
         </div>
       </div>
 
-      {/* Profile Links List matching reference */}
+      {/* Birthday Special Discount Banner & Button */}
+      <div className="bg-gradient-to-r from-rose-50 via-pink-50 to-amber-50 rounded-3xl p-4 sm:p-5 border border-rose-200/60 shadow-xs flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-brand-red text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-rose-500/20">
+            <Cake className="w-5 h-5 text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="text-xs sm:text-sm font-black text-gray-900">
+                Birthday Special Discount
+              </span>
+              <span className="text-[10px] font-black uppercase tracking-wider bg-rose-500 text-white px-2 py-0.5 rounded-full">
+                ₹1,500 OFF
+              </span>
+            </div>
+            <p className="text-[11px] text-gray-600 mt-0.5">
+              {currentUser?.dob || currentUser?.birthday
+                ? `Saved: ${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} • Special discount active on your birthday!`
+                : 'Add your birthday date to get special discount on that birthday date!'}
+            </p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsBirthdayModalOpen(true)}
+          className="py-2 px-3.5 bg-gradient-to-r from-brand-red to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
+        >
+          <Gift className="w-3.5 h-3.5" />
+          <span>{currentUser?.dob || currentUser?.birthday ? 'Edit Date' : 'Add Birthday 🎂'}</span>
+        </button>
+      </div>
+
+      {/* Profile Links List */}
       <div className="bg-white rounded-3xl border border-gray-100 shadow-xs divide-y divide-gray-100 overflow-hidden">
         {[
           {
@@ -185,7 +218,7 @@ export const ProfileScreen = () => {
             id: 'loyalty',
             label: 'Digital Loyalty Card & Points',
             icon: CreditCard,
-            badge: '950 Pts',
+            badge: `${currentUser?.loyaltyPoints || 0} Pts`,
             onClick: () => navigateTo('loyalty_card'),
           },
           {
@@ -204,19 +237,12 @@ export const ProfileScreen = () => {
           },
           {
             id: 'birthday',
-            label: 'Birthday Reward Voucher',
+            label: currentUser?.dob || currentUser?.birthday ? 'Birthday Special Discount' : 'Add Birthday Date 🎂',
             icon: Cake,
-            badge: '₹1,500 Coupon',
+            badge: currentUser?.dob || currentUser?.birthday 
+              ? `${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+              : '₹1,500 Coupon',
             onClick: () => setIsBirthdayModalOpen(true),
-          },
-          {
-            id: 'addresses',
-            label: 'My Showroom Delivery Addresses',
-            icon: MapPin,
-            badge: `${currentUser?.addresses?.length || 2} saved`,
-            onClick: () => {
-              alert(`Saved Addresses:\n1. ${currentUser?.addresses?.[0]?.fullAddress}\n2. ${currentUser?.addresses?.[1]?.fullAddress}`);
-            },
           },
           {
             id: 'locator',

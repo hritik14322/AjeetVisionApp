@@ -317,15 +317,39 @@ const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Logout user / clear cookie
-// @route   POST /api/auth/logout
+// @desc    Update user profile (e.g. dob, birthday, name)
+// @route   POST /api/auth/update-profile
 // @access  Public
-const logoutUser = asyncHandler(async (req, res) => {
-  res.cookie('jwt', '', {
-    httpOnly: true,
-    expires: new Date(0),
+const updateProfile = asyncHandler(async (req, res) => {
+  const { email, dob, name } = req.body;
+  if (!email) {
+    res.status(400);
+    throw new Error('Email is required');
+  }
+
+  const user = await User.findOne({ email: email.trim().toLowerCase() });
+  if (!user) {
+    res.status(404);
+    throw new Error('User not found');
+  }
+
+  if (dob) user.dob = new Date(dob);
+  if (name) user.name = name.trim();
+  await user.save();
+
+  res.status(200).json({
+    success: true,
+    message: 'Profile updated successfully',
+    user: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      mobile: user.mobile,
+      dob: user.dob,
+      loyaltyPoints: user.loyaltyPoints || 0,
+      role: user.role,
+    },
   });
-  res.status(200).json({ message: 'Logged out successfully' });
 });
 
 module.exports = {
@@ -337,4 +361,5 @@ module.exports = {
   forgotPassword,
   resetPasswordWithOtp,
   logoutUser,
+  updateProfile,
 };

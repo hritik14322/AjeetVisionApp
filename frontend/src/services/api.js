@@ -37,10 +37,6 @@ export const getActiveCustomerData = () => {
       );
     }
 
-    if (!matched) {
-      matched = syncCustomers.find(c => c && (c.email === 'hritik@gmail.com' || c.name === 'Hritik Kumar')) || syncCustomers[0];
-    }
-
     return matched;
   } catch (e) {
     return null;
@@ -64,26 +60,14 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'nav_notifications',
 };
 
-// Initialize LocalStorage: Seed demo user in nav_users_db for testing
+// Initialize LocalStorage: Ensure clean state for fresh users
 const initStorage = () => {
   try {
     const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-    if (!usersDb.some((u) => u.email === 'hritik@gmail.com')) {
-      usersDb.push({
-        id: 'usr-hritik-demo',
-        _id: '6acb8ece171b2e865f2bf9a6',
-        name: 'Hritik Kumar',
-        email: 'hritik@gmail.com',
-        mobile: '+91 99318 42478',
-        rawMobile: '9931842478',
-        password: 'password123',
-        role: 'customer',
-        isVerified: true,
-        isVipMember: true,
-        loyaltyPoints: 950,
-        loyaltyCardNumber: 'NAV-2024-8849',
-      });
-      localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+    // Filter out old hardcoded demo user so fresh registrations start with 0 points
+    const cleanedDb = usersDb.filter(u => u && u.id !== 'usr-hritik-demo');
+    if (cleanedDb.length !== usersDb.length) {
+      localStorage.setItem('nav_users_db', JSON.stringify(cleanedDb));
     }
   } catch (e) {}
 };
@@ -750,8 +734,8 @@ export const apiService = {
 
   async redeemLoyaltyPoints(pointsToRedeem) {
     await delay(500);
-    let pts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '950');
-    const txns = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_TXNS) || JSON.stringify(LOYALTY_TRANSACTIONS));
+    let pts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '0');
+    const txns = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_TXNS) || '[]');
 
     if (pointsToRedeem > pts) {
       throw new Error(`Insufficient points. You have ${pts} points available.`);
@@ -858,29 +842,40 @@ export const apiService = {
   },
 
   // ---------------- WISHLIST ----------------
+  getWishlistStorageKey() {
+    try {
+      const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || 'null');
+      return user?.email ? `nav_wishlist_${user.email.toLowerCase()}` : STORAGE_KEYS.WISHLIST;
+    } catch (e) {
+      return STORAGE_KEYS.WISHLIST;
+    }
+  },
+
   async getWishlist() {
-    await delay(300);
-    const ids = JSON.parse(localStorage.getItem(STORAGE_KEYS.WISHLIST) || '[]');
+    await delay(150);
+    const key = this.getWishlistStorageKey();
+    const ids = JSON.parse(localStorage.getItem(key) || '[]');
     const adminProds = localStorage.getItem('ADMIN_SYNC_PRODUCTS');
     const allProds = adminProds ? JSON.parse(adminProds) : PRODUCTS;
     const items = allProds.filter(p => ids.includes(p.id)).map(p => ({
       ...p,
-      priceDropped: p.id === 'prod-7', // Example price drop indicator
-      priceDropAmount: p.id === 'prod-7' ? 2000 : 0,
+      priceDropped: false,
+      priceDropAmount: 0,
     }));
     return items;
   },
 
   async toggleWishlist(productId) {
-    await delay(200);
-    let ids = JSON.parse(localStorage.getItem(STORAGE_KEYS.WISHLIST) || '[]');
+    await delay(150);
+    const key = this.getWishlistStorageKey();
+    let ids = JSON.parse(localStorage.getItem(key) || '[]');
     const exists = ids.includes(productId);
     if (exists) {
       ids = ids.filter(id => id !== productId);
     } else {
       ids.push(productId);
     }
-    localStorage.setItem(STORAGE_KEYS.WISHLIST, JSON.stringify(ids));
+    localStorage.setItem(key, JSON.stringify(ids));
     return {
       isWishlisted: !exists,
       wishlistCount: ids.length,
@@ -888,34 +883,100 @@ export const apiService = {
   },
 
   // ---------------- NOTIFICATIONS ----------------
+  getNotificationsStorageKey() {
+    try {
+      const user = JSON.parse(localStorage.getItem(STORAGE_KEYS.CURRENT_USER) || 'null');
+      return user?.email ? `nav_notifications_${user.email.toLowerCase()}` : STORAGE_KEYS.NOTIFICATIONS;
+    } catch (e) {
+      return STORAGE_KEYS.NOTIFICATIONS;
+    }
+  },
+
   async getNotifications() {
-    await delay(250);
-    const notifs = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || JSON.stringify(INITIAL_NOTIFICATIONS));
+    await delay(150);
+    const key = this.getNotificationsStorageKey();
+    const saved = localStorage.getItem(key);
+    let notifs = saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(INITIAL_NOTIFICATIONS));
     const unreadCount = notifs.filter(n => !n.read).length;
     return { notifications: notifs, unreadCount };
   },
 
   async markNotificationRead(id) {
-    await delay(150);
-    const notifs = JSON.parse(localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS) || JSON.stringify(INITIAL_NOTIFICATIONS));
+    await delay(100);
+    const key = this.getNotificationsStorageKey();
+    const notifs = JSON.parse(localStorage.getItem(key) || JSON.stringify(INITIAL_NOTIFICATIONS));
     const updated = notifs.map(n => n.id === id ? { ...n, read: true } : n);
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    localStorage.setItem(key, JSON.stringify(updated));
     return updated;
+  },
+
+  // ---------------- PROFILE UPDATE (BIRTHDAY, NAME) ----------------
+  async updateUserProfile({ email, dob, name }) {
+    if (!email) throw new Error('Email is required to update profile');
+    try {
+      const res = await fetch('/api/auth/update-profile', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), dob, name }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.message || 'Failed to update profile');
+      }
+
+      // Update local storage user profile
+      const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (dob) u.dob = dob;
+        if (name) u.name = name;
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(u));
+      }
+
+      return data.user;
+    } catch (err) {
+      // Offline fallback: save locally
+      const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+      if (userStr) {
+        const u = JSON.parse(userStr);
+        if (dob) u.dob = dob;
+        if (name) u.name = name;
+        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(u));
+        return u;
+      }
+      throw err;
+    }
   },
 
   // ---------------- BIRTHDAY REWARD ----------------
   async getBirthdayReward() {
-    await delay(200);
+    await delay(150);
     const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
     const user = userStr ? JSON.parse(userStr) : null;
+    const userDob = user?.dob || user?.dateOfBirth;
+    
+    // Check if current month is birthday month
+    let isBirthdayMonth = false;
+    let birthdayFormatted = null;
+    if (userDob) {
+      const bDate = new Date(userDob);
+      const today = new Date();
+      isBirthdayMonth = bDate.getMonth() === today.getMonth();
+      birthdayFormatted = bDate.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' });
+    }
+
     return {
       isEligible: !!user,
-      dob: user?.dateOfBirth || null,
+      dob: userDob || null,
+      birthdayFormatted,
+      isBirthdayMonth,
       couponCode: 'BDAY-AJEET-1500',
       discountAmount: 1500,
       minPurchase: 10000,
-      expiryDate: '31 Oct 2026',
-      message: 'Happy Birthday Month from New Ajeet Vision! Enjoy ₹1,500 OFF on any appliance.',
+      expiryDate: 'End of Birthday Month',
+      message: isBirthdayMonth
+        ? '🎉 Happy Birthday Month from New Ajeet Vision! Enjoy ₹1,500 OFF on any home appliance.'
+        : 'Save your birthday to unlock ₹1,500 OFF voucher and special gifts on your birthday!',
     };
   },
 

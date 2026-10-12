@@ -271,11 +271,8 @@ const CustomersSection = () => {
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
     let list = saved ? JSON.parse(saved) : [];
 
-    // Ensure Hritik Kumar is in the list
-    const hasHritik = list.some(c => c && (c.email === 'hritik@gmail.com' || c.name === 'Hritik Kumar'));
-    if (!hasHritik) {
-      list.unshift(DEMO_HRITIK);
-    }
+    // Filter out old hardcoded demo user with 950 points
+    list = list.filter(c => c && c.id !== 'usr-hritik-demo');
 
     // Retrieve active registered users from nav_users_db
     const activeUser = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
@@ -505,6 +502,26 @@ const CustomersSection = () => {
       localStorage.setItem('nav_user_profile', JSON.stringify(activeUser));
       localStorage.setItem('nav_loyalty_pts', JSON.stringify(newPoints));
     }
+
+    // Generate real billing notification for this customer (visible only when bill added by Admin)
+    try {
+      const custEmail = selectedCustomer.email ? selectedCustomer.email.toLowerCase() : null;
+      const targetNotifKeys = custEmail ? [`nav_notifications_${custEmail}`, 'nav_notifications'] : ['nav_notifications'];
+      const newBillNotif = {
+        id: `notif-bill-${Date.now()}`,
+        title: '🧾 New Showroom Bill Generated',
+        message: `Bill #${invNo} generated for ${billForm.description.trim()} of ₹${totalAmt.toLocaleString('en-IN')}.${pts > 0 ? ` +${pts} loyalty points earned!` : ''}`,
+        time: 'Just now',
+        type: 'bill',
+        read: false,
+        action: 'purchases',
+      };
+      targetNotifKeys.forEach(k => {
+        const notifs = JSON.parse(localStorage.getItem(k) || '[]');
+        notifs.unshift(newBillNotif);
+        localStorage.setItem(k, JSON.stringify(notifs));
+      });
+    } catch (e) {}
 
     // Also notify backend API to record in MongoDB
     try {

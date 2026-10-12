@@ -9,6 +9,7 @@ const {
   forgotPassword,
   resetPasswordWithOtp,
   logoutUser,
+  updateProfile,
 } = require('../controllers/authController');
 
 router.post('/send-email-otp', sendEmailOtp);
@@ -19,5 +20,6 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPasswordWithOtp);
 router.post('/verify-firebase', verifyFirebaseToken);
 router.post('/logout', logoutUser);
+router.post('/update-profile', updateProfile);
 
 module.exports = router;

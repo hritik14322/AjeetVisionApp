@@ -156,6 +156,12 @@ export const AppProvider = ({ children }) => {
     const res = await apiService.signUp(userData);
     setCurrentUser(res.user);
     setIsAuthenticated(true);
+    try {
+      const wishlist = await apiService.getWishlist();
+      setWishlistIds(wishlist ? wishlist.map(p => p.id) : []);
+      const notifs = await apiService.getNotifications();
+      setUnreadNotifCount(notifs?.unreadCount || 0);
+    } catch (e) {}
     showToast(`Account created successfully! Welcome, ${res.user.name}`, 'success');
     navigateTo('home');
     return res;
@@ -165,6 +171,12 @@ export const AppProvider = ({ children }) => {
     const res = await apiService.signIn(credentials);
     setCurrentUser(res.user);
     setIsAuthenticated(true);
+    try {
+      const wishlist = await apiService.getWishlist();
+      setWishlistIds(wishlist ? wishlist.map(p => p.id) : []);
+      const notifs = await apiService.getNotifications();
+      setUnreadNotifCount(notifs?.unreadCount || 0);
+    } catch (e) {}
     showToast(`Welcome back, ${res.user.name}!`, 'success');
     navigateTo('home');
     return res;
@@ -205,6 +217,12 @@ export const AppProvider = ({ children }) => {
     const res = await apiService.verifyOtp(pendingOtpMobile, otp);
     setCurrentUser(res.user);
     setIsAuthenticated(true);
+    try {
+      const wishlist = await apiService.getWishlist();
+      setWishlistIds(wishlist ? wishlist.map(p => p.id) : []);
+      const notifs = await apiService.getNotifications();
+      setUnreadNotifCount(notifs?.unreadCount || 0);
+    } catch (e) {}
     showToast(`Welcome back, ${res.user.name}!`, 'success');
     navigateTo('home');
     return res;
@@ -214,6 +232,8 @@ export const AppProvider = ({ children }) => {
     await apiService.logout();
     setCurrentUser(null);
     setIsAuthenticated(false);
+    setWishlistIds([]);
+    setUnreadNotifCount(0);
     showToast('You have been logged out safely', 'info');
     navigateTo('login');
   };
