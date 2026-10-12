@@ -83,4 +83,35 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
   res.json({ success: true, count: customerList.length, customers: customerList });
 });
 
-module.exports = { getDashboardStats, getDashboardCustomers };
+const giveCustomerPoints = asyncHandler(async (req, res) => {
+  const { customerId, email, points } = req.body;
+  let user = null;
+  if (customerId && customerId.length === 24) {
+    user = await User.findById(customerId);
+  }
+  if (!user && email) {
+    user = await User.findOne({ email: email.trim().toLowerCase() });
+  }
+  if (!user) {
+    res.status(404);
+    throw new Error('Customer not found in database');
+  }
+
+  const addedPts = Number(points) || 0;
+  user.loyaltyPoints = Math.max(0, (user.loyaltyPoints || 0) + addedPts);
+  await user.save();
+
+  res.json({
+    success: true,
+    message: `Added ${addedPts} points to ${user.name}`,
+    points: user.loyaltyPoints,
+    customer: {
+      id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      points: user.loyaltyPoints,
+    }
+  });
+});
+
+module.exports = { getDashboardStats, getDashboardCustomers, giveCustomerPoints };

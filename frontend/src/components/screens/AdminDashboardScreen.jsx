@@ -3,7 +3,7 @@ import { useApp } from '../../context/AppContext';
 import { LayoutDashboard, Users, ShoppingBag, Gift, Tag, Image, Star,
   TrendingUp, CreditCard, UserCheck, ArrowUpRight, ChevronRight,
   Edit2, Save, X, Plus, Trash2, Settings, ToggleLeft, ToggleRight,
-  Package, Megaphone, Zap, Crown, ArrowLeft, Check, Upload, DollarSign
+  Package, Megaphone, Zap, Crown, ArrowLeft, Check, Upload, DollarSign, RotateCcw
 } from 'lucide-react';
 import { CATEGORIES, PRODUCTS } from '../../data/mockData';
 
@@ -270,73 +270,42 @@ const CustomersSection = () => {
   const [customers, setCustomers] = useState(() => {
     const saved = localStorage.getItem('ADMIN_SYNC_CUSTOMERS');
     let list = saved ? JSON.parse(saved) : [];
-
-    // Filter out old hardcoded demo user with 950 points
-    list = list.filter(c => c && c.id !== 'usr-hritik-demo');
-
-    // Retrieve active registered users from nav_users_db
-    const activeUser = JSON.parse(localStorage.getItem('nav_user_profile') || 'null');
-    const dbUsers = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-
-    const extraUsers = [];
-    if (activeUser && activeUser.name) extraUsers.push(activeUser);
-    dbUsers.forEach(u => {
-      if (u && u.name && !extraUsers.some(x => (x.email && x.email === u.email) || (x.mobile && x.mobile === u.mobile))) {
-        extraUsers.push(u);
-      }
-    });
-
-    extraUsers.forEach(u => {
-      const exists = list.some(c => 
-        (c.email && u.email && c.email.toLowerCase() === u.email.toLowerCase()) ||
-        (c.mobile && u.mobile && c.mobile.replace(/\D/g, '') === u.mobile.replace(/\D/g, '')) ||
-        (c.name && c.name.toLowerCase() === u.name.toLowerCase())
-      );
-
-      if (!exists) {
-        list.unshift({
-          id: `usr-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
-          name: u.name,
-          mobile: u.mobile || '',
-          email: u.email || '',
-          points: u.loyaltyPoints || 0,
-          vip: u.isVipMember || false,
-          outstanding: 0,
-          spent: 0,
-          rewardProgress: 0,
-          joinedDate: 'New Customer',
-          loyaltyCardNumber: u.loyaltyCardNumber || '',
-          purchases: [],
-          pointHistory: [],
-        });
-      }
-    });
-
-    return list;
+    return list.filter(c => c && c.id !== 'usr-hritik-demo');
   });
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
-  React.useEffect(() => {
-    fetch('/api/admin/dashboard/customers')
-      .then(res => res.json())
-      .then(data => {
-        if (data.success && Array.isArray(data.customers) && data.customers.length > 0) {
-          setCustomers(prev => {
-            const merged = [...data.customers];
-            prev.forEach(p => {
-              if (!merged.some(m => (m.email && p.email && m.email.toLowerCase() === p.email.toLowerCase()) || m.id === p.id)) {
-                merged.push(p);
-              }
-            });
-            return merged;
+  // Fetch live customers directly from MongoDB Atlas
+  const fetchCustomersFromDb = React.useCallback(async (showIndicator = false) => {
+    try {
+      if (showIndicator) setIsRefreshing(true);
+      const res = await fetch('/api/admin/dashboard/customers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.customers)) {
+          setCustomers(data.customers);
+          localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(data.customers));
+          setSelectedCustomer(prev => {
+            if (!prev) return null;
+            const updated = data.customers.find(c => c.id === prev.id || (c.email && prev.email && c.email.toLowerCase() === prev.email.toLowerCase()));
+            return updated ? { ...prev, ...updated } : prev;
           });
         }
-      })
-      .catch(err => console.warn('Could not fetch server customers:', err.message));
+      }
+    } catch (err) {
+      console.warn('Could not fetch server customers:', err.message);
+    } finally {
+      if (showIndicator) setTimeout(() => setIsRefreshing(false), 500);
+    }
   }, []);
 
+  // Poll database in real time every 3.5s
   React.useEffect(() => {
-    localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(customers));
-  }, [customers]);
+    fetchCustomersFromDb();
+    const interval = setInterval(() => {
+      fetchCustomersFromDb();
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [fetchCustomersFromDb]);
 
   const filtered = filter === 'vip'
     ? customers.filter(c => c.vip)
@@ -344,28 +313,44 @@ const CustomersSection = () => {
     ? customers.filter(c => c.outstanding > 0)
     : customers;
 
-  const handleGivePoints = () => {
-    if (!pointsForm.amount || Number(pointsForm.amount) <= 0) return;
+  const handleGivePoints = async () => {
+    if (!pointsForm.amount || Number(pointsForm.amount) <= 0 || !selectedCustomer) return;
     const pts = Number(pointsForm.amount);
+
+    // 1. Persist directly to MongoDB Atlas
+    try {
+      await fetch('/api/admin/dashboard/customers/give-points', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          customerId: selectedCustomer._id || selectedCustomer.id,
+          email: selectedCustomer.email,
+          points: pts,
+        })
+      });
+    } catch (err) {
+      console.warn('DB give-points API note:', err);
+    }
+
     const updatedCustomers = customers.map(c => {
       if (c.id !== selectedCustomer.id) return c;
       return {
         ...c,
-        points: c.points + pts,
+        points: (c.points || 0) + pts,
         pointHistory: [
           { date: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }), type: 'manual', pts, reason: pointsForm.reason || 'Manual bonus by admin', by: 'Admin' },
-          ...c.pointHistory,
+          ...(c.pointHistory || []),
         ],
       };
     });
     setCustomers(updatedCustomers);
     localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(updatedCustomers));
 
-    const newTotal = selectedCustomer.points + pts;
+    const newTotal = (selectedCustomer.points || 0) + pts;
     setSelectedCustomer(prev => ({ ...prev, points: newTotal,
       pointHistory: [
         { date: new Date().toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }), type: 'manual', pts, reason: pointsForm.reason || 'Manual bonus by admin', by: 'Admin' },
-        ...prev.pointHistory,
+        ...(prev.pointHistory || []),
       ]
     }));
 
@@ -383,6 +368,7 @@ const CustomersSection = () => {
     setPointsForm({ amount: '', reason: '', note: '' });
     setPointsSaved(true);
     setTimeout(() => setPointsSaved(false), 3000);
+    setTimeout(() => fetchCustomersFromDb(), 600);
   };
 
   const handleSaveCardNumber = () => {
@@ -542,6 +528,8 @@ const CustomersSection = () => {
     } catch (apiErr) {
       console.warn('API purchase sync note:', apiErr);
     }
+
+    setTimeout(() => fetchCustomersFromDb(), 600);
 
     setBillSaving(false);
     setBillSuccess(true);
@@ -1079,7 +1067,27 @@ const CustomersSection = () => {
         ))}
       </div>
       <SectionCard>
-        <SectionHeader title={`${filtered.length} Customers`} subtitle="Tap a customer to view details & give points" />
+        <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-[#F1E5DB]">
+          <div>
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-[#0B1527] font-bold text-[18px]">{filtered.length} Customers</h2>
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                Live Atlas Database
+              </span>
+            </div>
+            <p className="text-[#64748B] text-[13px] mt-0.5">Tap a customer to view details, award points & add bills</p>
+          </div>
+          <button
+            onClick={() => fetchCustomersFromDb(true)}
+            disabled={isRefreshing}
+            className="flex items-center gap-1.5 px-3.5 py-2 text-xs font-bold text-[#0B1527] bg-[#F7F8FA] hover:bg-gray-100 border border-gray-200 rounded-xl transition shadow-xs cursor-pointer active:scale-95"
+            title="Force refresh from MongoDB Atlas"
+          >
+            <RotateCcw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-[#FF3B4A]' : 'text-gray-600'}`} />
+            {isRefreshing ? 'Syncing...' : 'Refresh'}
+          </button>
+        </div>
         <div className="divide-y divide-[#F7F8FA]">
           {filtered.map((c) => (
             <div key={c.id}

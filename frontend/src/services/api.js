@@ -411,7 +411,7 @@ export const apiService = {
     if (!userStr) return null;
     try {
       const user = JSON.parse(userStr);
-      if (user && user.name !== 'Hritik Kumar' && user.email !== 'hritik.kumar@example.com') {
+      if (user && user.id !== 'usr-hritik-demo' && user.email !== 'hritik.kumar@example.com') {
         return user;
       }
     } catch (e) {}
@@ -538,7 +538,17 @@ export const apiService = {
 
   // ---------------- PURCHASES & INVOICE SERVICES ----------------
   async getPurchases(statusFilter = 'all') {
-    await delay(100);
+    await delay(50);
+    try {
+      const res = await fetch('/api/admin/dashboard/customers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.customers && Array.isArray(data.customers)) {
+          localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(data.customers));
+        }
+      }
+    } catch (e) {}
+
     const cust = getActiveCustomerData();
     const rawPurchases = (cust && Array.isArray(cust.purchases)) ? cust.purchases : [];
 
@@ -695,6 +705,16 @@ export const apiService = {
     }
 
     // Check if admin updated points or card number in ADMIN_SYNC_CUSTOMERS
+    try {
+      const res = await fetch('/api/admin/dashboard/customers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.customers && Array.isArray(data.customers)) {
+          localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(data.customers));
+        }
+      }
+    } catch (e) {}
+
     const adminCustomers = JSON.parse(localStorage.getItem('ADMIN_SYNC_CUSTOMERS') || '[]');
     const matchedCustomer = adminCustomers.find(c => 
       (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase()) ||

@@ -15,7 +15,7 @@ export const AppProvider = ({ children }) => {
     if (token && user) {
       try {
         const u = JSON.parse(user);
-        if (u && u.name && u.name !== 'Hritik Kumar' && u.email !== 'hritik.kumar@example.com') {
+        if (u && u.name && u.id !== 'usr-hritik-demo' && u.email !== 'hritik.kumar@example.com') {
           return initialPath && ['home', 'categories', 'category_products', 'product_detail', 'purchases', 'bill_details', 'vip_club', 'loyalty_card', 'wishlist', 'daily_deals', 'notifications', 'profile'].includes(initialPath) ? initialPath : 'home';
         }
       } catch (e) {}
@@ -82,15 +82,70 @@ export const AppProvider = ({ children }) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   };
 
+  // Real-time sync function from database
+  const syncCustomerFromDb = async (user) => {
+    if (!user || (!user.email && !user.mobile)) return;
+    try {
+      const res = await fetch('/api/admin/dashboard/customers');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.customers && Array.isArray(data.customers)) {
+          // Always keep ADMIN_SYNC_CUSTOMERS fresh
+          localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(data.customers));
+          const match = data.customers.find(c => 
+            (c.email && user.email && c.email.toLowerCase() === user.email.toLowerCase()) ||
+            (c.mobile && user.mobile && c.mobile.replace(/\D/g, '') === user.mobile.replace(/\D/g, '')) ||
+            (c.name && user.name && c.name.toLowerCase() === user.name.toLowerCase())
+          );
+          if (match) {
+            setCurrentUser(prev => {
+              if (!prev) return prev;
+              const hasChanged = 
+                prev.loyaltyPoints !== match.points || 
+                prev.spent !== match.spent ||
+                prev.outstanding !== match.outstanding ||
+                Boolean(prev.isVipMember) !== Boolean(match.vip);
+
+              if (hasChanged) {
+                const updated = {
+                  ...prev,
+                  loyaltyPoints: match.points || 0,
+                  isVipMember: Boolean(match.vip),
+                  spent: match.spent || 0,
+                  outstanding: match.outstanding || 0,
+                  loyaltyCardNumber: match.loyaltyCardNumber || prev.loyaltyCardNumber,
+                };
+                localStorage.setItem('nav_user_profile', JSON.stringify(updated));
+                localStorage.setItem('nav_loyalty_pts', JSON.stringify(match.points || 0));
+                return updated;
+              }
+              return prev;
+            });
+          }
+        }
+      }
+    } catch (e) {}
+  };
+
+  // Continuous real-time sync with database every 3.5s
+  useEffect(() => {
+    if (!currentUser || (!currentUser.email && !currentUser.mobile)) return;
+    const interval = setInterval(() => {
+      syncCustomerFromDb(currentUser);
+    }, 3500);
+    return () => clearInterval(interval);
+  }, [currentUser?.email, currentUser?.mobile]);
+
   // Initial load
   useEffect(() => {
     const loadAppData = async () => {
       try {
         setAuthLoading(true);
         const user = await apiService.getCurrentUser();
-        if (user && user.name !== 'Hritik Kumar' && user.email !== 'hritik.kumar@example.com') {
+        if (user && user.id !== 'usr-hritik-demo' && user.email !== 'hritik.kumar@example.com') {
           setCurrentUser(user);
           setIsAuthenticated(true);
+          syncCustomerFromDb(user);
         } else {
           setCurrentUser(null);
           setIsAuthenticated(false);
