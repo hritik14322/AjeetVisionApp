@@ -114,6 +114,7 @@ const sendEmailOtp = asyncHandler(async (req, res) => {
       success: true,
       message: `Verification OTP has been sent to ${cleanEmail}`,
       email: cleanEmail,
+      previewOtp: otpCode,
     });
   }
 
@@ -287,6 +288,7 @@ const forgotPassword = asyncHandler(async (req, res) => {
       success: true,
       message: `Password reset OTP has been sent to ${cleanEmail}`,
       email: cleanEmail,
+      previewOtp: otpCode,
     });
   }
 

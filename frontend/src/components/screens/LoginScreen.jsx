@@ -46,6 +46,7 @@ export const LoginScreen = () => {
   const [signUpPassword, setSignUpPassword] = useState('');
   const [emailOtp, setEmailOtp] = useState(['', '', '', '', '', '']);
   const [resendTimer, setResendTimer] = useState(0);
+  const [receivedPreviewOtp, setReceivedPreviewOtp] = useState('');
   const otpInputRefs = useRef([]);
 
   // Forgot Password Modal
@@ -136,6 +137,7 @@ export const LoginScreen = () => {
       setEmailOtp(['', '', '', '', '', '']);
 
       if (res?.previewOtp) {
+        setReceivedPreviewOtp(res.previewOtp);
         showToast(`Verification code sent to Gmail! (Code: ${res.previewOtp})`, 'info');
       } else {
         showToast(`Verification code sent to ${signUpEmail}! Check your inbox.`, 'success');
@@ -182,6 +184,7 @@ export const LoginScreen = () => {
       const res = await handleSendEmailOtp(signUpEmail, 'signup');
       setResendTimer(45);
       if (res?.previewOtp) {
+        setReceivedPreviewOtp(res.previewOtp);
         showToast(`New code sent! (Code: ${res.previewOtp})`, 'info');
       } else {
         showToast(`A fresh verification OTP was sent to ${signUpEmail}`, 'success');
@@ -644,6 +647,25 @@ export const LoginScreen = () => {
                         </button>
                       )}
                     </div>
+
+                    {/* Instant Code Fallback / Auto-fill Helper */}
+                    {receivedPreviewOtp && (
+                      <div className="bg-amber-500/20 backdrop-blur-sm border border-amber-300/40 rounded-xl p-2.5 text-center mt-1">
+                        <p className="text-[11px] text-amber-200">
+                          Instant Verification Code: <span className="font-mono font-black text-white tracking-widest text-sm">{receivedPreviewOtp}</span>
+                        </p>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const digits = receivedPreviewOtp.toString().split('').slice(0, 6);
+                            setEmailOtp(digits);
+                          }}
+                          className="mt-1 text-xs font-bold text-amber-300 underline hover:text-white transition cursor-pointer"
+                        >
+                          ⚡ Tap to Auto-Fill OTP
+                        </button>
+                      </div>
+                    )}
 
                     {/* Submit Registration */}
                     <button
