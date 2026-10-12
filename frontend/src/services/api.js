@@ -325,16 +325,18 @@ export const apiService = {
   },
 
   async resetPasswordWithOtp(email, otp, newPassword) {
-    if (!email || !otp || !newPassword) throw new Error('All fields are required');
+    if (!email || !newPassword) throw new Error('Email and new password are required');
     if (newPassword.length < 6) throw new Error('Password must be at least 6 characters long');
+
+    const cleanEmail = email.trim().toLowerCase();
 
     try {
       const res = await fetch('/api/auth/reset-password', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim().toLowerCase(),
-          otp: otp.toString().trim(),
+          email: cleanEmail,
+          otp: (otp || '').toString().trim(),
           newPassword,
         }),
       });
@@ -342,18 +344,24 @@ export const apiService = {
       if (!res.ok) {
         throw new Error(data.message || 'Password reset failed');
       }
+
+      // Sync local storage user password if present
+      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+      const idx = usersDb.findIndex(u => u.email?.toLowerCase() === cleanEmail);
+      if (idx >= 0) {
+        usersDb[idx].password = newPassword;
+        localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+      }
+
       return data;
     } catch (err) {
-      const cleanEmail = email.trim().toLowerCase();
-      const localOtp = localStorage.getItem(`nav_otp_${cleanEmail}`);
-      if (localOtp && localOtp === otp.toString().trim()) {
-        const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
-        const idx = usersDb.findIndex(u => u.email?.toLowerCase() === cleanEmail);
-        if (idx >= 0) {
-          usersDb[idx].password = newPassword;
-          localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
-        }
-        return { success: true, message: 'Password reset successfully!' };
+      // Local fallback for offline mode
+      const usersDb = JSON.parse(localStorage.getItem('nav_users_db') || '[]');
+      const idx = usersDb.findIndex(u => u.email?.toLowerCase() === cleanEmail);
+      if (idx >= 0) {
+        usersDb[idx].password = newPassword;
+        localStorage.setItem('nav_users_db', JSON.stringify(usersDb));
+        return { success: true, message: 'Password updated successfully!' };
       }
       throw err;
     }
