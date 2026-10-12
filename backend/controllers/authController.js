@@ -155,15 +155,15 @@ const verifyEmailOtp = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Register a new user (Sign Up) with verified OTP
+// @desc    Register a new user (Sign Up) with Email & Password
 // @route   POST /api/auth/register
 // @access  Public
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, mobile, email, password, otp } = req.body;
+  const { name, mobile, email, password } = req.body;
 
   if (!name || !email || !password) {
     res.status(400);
-    throw new Error('Please fill in all required fields');
+    throw new Error('Please fill in your name, email, and password');
   }
 
   const cleanEmail = email.trim().toLowerCase();
@@ -171,18 +171,7 @@ const registerUser = asyncHandler(async (req, res) => {
   const userExists = await User.findOne({ email: cleanEmail });
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists with this email address');
-  }
-
-  // Verify OTP if passed or check active OTP record
-  if (otp) {
-    const validOtp = await Otp.findOne({ email: cleanEmail, otp: otp.toString().trim() });
-    if (!validOtp) {
-      res.status(400);
-      throw new Error('Invalid or expired OTP code. Please verify your Gmail first.');
-    }
-    // Delete used OTP
-    await Otp.deleteMany({ email: cleanEmail });
+    throw new Error('An account with this email address already exists. Please sign in instead.');
   }
 
   const user = await User.create({
@@ -217,28 +206,14 @@ const loginUser = asyncHandler(async (req, res) => {
   const { email, password } = req.body;
   const cleanEmail = (email || '').toLowerCase().trim();
 
-  let user = await User.findOne({ email: cleanEmail });
-
-  // Auto-seed demo customer Hritik Kumar if needed
-  if (!user && cleanEmail === 'hritik@gmail.com') {
-    try {
-      user = await User.create({
-        name: 'Hritik Kumar',
-        email: 'hritik@gmail.com',
-        mobile: '+91 99318 42478',
-        password: password || 'password123',
-        role: 'customer',
-        vipMembership: { isActive: true },
-        loyaltyPoints: 950,
-        rewardProgress: { currentAmount: 48990, targetAmount: 100000, isUnlocked: false },
-      });
-    } catch (e) {
-      // If user creation raced or existed by mobile
-      user = await User.findOne({ email: cleanEmail });
-    }
+  if (!cleanEmail || !password) {
+    res.status(400);
+    throw new Error('Please enter both email and password');
   }
 
-  if (user && (user.password === password || !user.password || cleanEmail === 'hritik@gmail.com')) {
+  const user = await User.findOne({ email: cleanEmail });
+
+  if (user && (user.password === password || !user.password)) {
     const token = generateToken(res, user._id);
     res.status(200).json({
       _id: user._id,
@@ -302,15 +277,15 @@ const forgotPassword = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Reset password using verified email OTP
+// @desc    Reset password using Email & New Password
 // @route   POST /api/auth/reset-password
 // @access  Public
 const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   const { email, otp, newPassword } = req.body;
 
-  if (!email || !otp || !newPassword) {
+  if (!email || !newPassword) {
     res.status(400);
-    throw new Error('Email, OTP, and new password are required');
+    throw new Error('Email and new password are required');
   }
 
   if (newPassword.length < 6) {
@@ -319,22 +294,22 @@ const resetPasswordWithOtp = asyncHandler(async (req, res) => {
   }
 
   const cleanEmail = email.trim().toLowerCase();
-  const validOtp = await Otp.findOne({ email: cleanEmail, otp: otp.toString().trim() });
 
-  if (!validOtp) {
-    res.status(400);
-    throw new Error('Invalid or expired OTP code.');
+  if (otp) {
+    const validOtp = await Otp.findOne({ email: cleanEmail, otp: otp.toString().trim() });
+    if (validOtp) {
+      await Otp.deleteMany({ email: cleanEmail });
+    }
   }
 
   const user = await User.findOne({ email: cleanEmail });
   if (!user) {
     res.status(404);
-    throw new Error('No user found with this email.');
+    throw new Error('No registered account found with this email address.');
   }
 
   user.password = newPassword;
   await user.save();
-  await Otp.deleteMany({ email: cleanEmail });
 
   res.status(200).json({
     success: true,

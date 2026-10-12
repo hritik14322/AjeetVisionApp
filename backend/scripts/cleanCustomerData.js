@@ -1,35 +1,26 @@
 const mongoose = require('mongoose');
-require('dotenv').config();
-const User = require('../models/User');
-const Purchase = require('../models/Purchase');
-const LoyaltyCard = require('../models/LoyaltyCard');
-const LoyaltyTransaction = require('../models/LoyaltyTransaction');
-const Wishlist = require('../models/Wishlist');
+require('dotenv').config({ path: __dirname + '/../.env' });
 
-async function clean() {
-  await mongoose.connect(process.env.MONGO_URI);
-  console.log('Connected to MongoDB Atlas');
+async function cleanDB(uri, label) {
+  try {
+    const conn = await mongoose.createConnection(uri, { serverSelectionTimeoutMS: 3000 }).asPromise();
+    const uRes = await conn.collection('users').deleteMany({ role: { $ne: 'admin' } });
+    const pRes = await conn.collection('purchases').deleteMany({});
+    const oRes = await conn.collection('otps').deleteMany({});
+    console.log(`[${label}] Deleted customers: ${uRes.deletedCount}, purchases: ${pRes.deletedCount}, otps: ${oRes.deletedCount}`);
+    await conn.close();
+  } catch (e) {
+    console.log(`[${label}] Skipped/Error: ${e.message}`);
+  }
+}
 
-  const resUsers = await User.deleteMany({ role: { $ne: 'admin' } });
-  console.log('Deleted customer users:', resUsers.deletedCount);
-
-  const resPurchases = await Purchase.deleteMany({});
-  console.log('Deleted customer purchases:', resPurchases.deletedCount);
-
-  const resCards = await LoyaltyCard.deleteMany({});
-  console.log('Deleted loyalty cards:', resCards.deletedCount);
-
-  const resTxns = await LoyaltyTransaction.deleteMany({});
-  console.log('Deleted loyalty transactions:', resTxns.deletedCount);
-
-  const resWish = await Wishlist.deleteMany({});
-  console.log('Deleted wishlists:', resWish.deletedCount);
-
-  console.log('Database customer data cleanup complete!');
+async function main() {
+  await cleanDB(process.env.LOCAL_MONGO_URI || 'mongodb://localhost:27017/new-ajeet-vision', 'Local MongoDB');
+  if (process.env.MONGO_URI) {
+    await cleanDB(process.env.MONGO_URI, 'Atlas MongoDB');
+  }
+  console.log('Customer data cleanup complete.');
   process.exit(0);
 }
 
-clean().catch(err => {
-  console.error('Error during cleanup:', err);
-  process.exit(1);
-});
+main();

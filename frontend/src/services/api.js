@@ -146,7 +146,7 @@ export const apiService = {
     }
   },
 
-  async signUp({ name, mobile, email, password, otp }) {
+  async signUp({ name, mobile, email, password }) {
     if (!name || !name.trim()) throw new Error('Please enter your full name');
     const cleanMobile = (mobile || '').replace(/\D/g, '');
     if (cleanMobile.length < 10) throw new Error('Please enter a valid 10-digit mobile number');
@@ -168,7 +168,6 @@ export const apiService = {
           mobile: `+91 ${cleanMobile.slice(-10)}`,
           email: email.trim().toLowerCase(),
           password,
-          otp,
         }),
         signal: controller.signal,
       });
