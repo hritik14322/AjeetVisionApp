@@ -687,11 +687,6 @@ export const apiService = {
     user.vipExpiryDate = expiry.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
     localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(user));
 
-    // Add bonus loyalty points
-    let pts = JSON.parse(localStorage.getItem(STORAGE_KEYS.LOYALTY_PTS) || '0');
-    pts += 500;
-    localStorage.setItem(STORAGE_KEYS.LOYALTY_PTS, JSON.stringify(pts));
-
     return {
       success: true,
       message: 'Welcome to NEW AJEET VISION CLUB! Your VIP status is now active.',

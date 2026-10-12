@@ -111,7 +111,6 @@ const activateVipDirectly = asyncHandler(async (req, res) => {
     isActive: true,
     expiryDate: expiry,
   };
-  user.loyaltyPoints = (user.loyaltyPoints || 0) + 500;
   await user.save();
 
   res.json({
