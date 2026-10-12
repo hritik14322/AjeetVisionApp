@@ -52,67 +52,21 @@ const getTransporter = () => {
  */
 const generateOtpEmailHtml = (otp, type = 'signup') => {
   const isSignup = type === 'signup';
-  const title = isSignup ? 'Verify Your Gmail Account' : 'Reset Your Password';
   const subtitle = isSignup
-    ? 'Thank you for registering at New Ajeet Vision. Please verify your Gmail to complete your account setup.'
-    : 'We received a request to reset your New Ajeet Vision account password.';
+    ? 'Thank you for registering at New Ajeet Vision. Here is your verification code to complete your account setup:'
+    : 'We received a request to reset your New Ajeet Vision account password. Here is your verification code:';
 
   return `
-  <!DOCTYPE html>
-  <html>
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>${title}</title>
-  </head>
-  <body style="margin: 0; padding: 0; background-color: #F7F8FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color: #F7F8FA; padding: 30px 10px;">
-      <tr>
-        <td align="center">
-          <table width="100%" max-width="560px" style="max-width: 560px; background-color: #FFFFFF; border-radius: 20px; overflow: hidden; box-shadow: 0 10px 25px rgba(0,0,0,0.06); border: 1px solid #E5E7EB;">
-            <!-- Brand Header -->
-            <tr>
-              <td style="background: linear-gradient(135deg, #B91C1C 0%, #E51926 50%, #991B1B 100%); padding: 32px 24px; text-align: center;">
-                <h1 style="margin: 0; color: #FFFFFF; font-size: 26px; font-weight: 900; letter-spacing: 0.5px;">NEW AJEET VISION</h1>
-                <p style="margin: 6px 0 0 0; color: #FEE2E2; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px;">Obra, Bihar</p>
-              </td>
-            </tr>
-
-            <!-- Body Content -->
-            <tr>
-              <td style="padding: 36px 32px;">
-                <h2 style="margin: 0 0 12px 0; color: #111827; font-size: 20px; font-weight: 800;">${title}</h2>
-                <p style="margin: 0 0 24px 0; color: #4B5563; font-size: 14px; line-height: 1.6;">
-                  ${subtitle}
-                </p>
-
-                <!-- OTP Display Box -->
-                <div style="background-color: #FFF1F2; border: 2px dashed #E51926; border-radius: 16px; padding: 24px; text-align: center; margin: 28px 0;">
-                  <span style="display: block; font-size: 12px; font-weight: 700; color: #991B1B; text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px;">Your One-Time Password (OTP)</span>
-                  <span style="font-size: 38px; font-weight: 900; color: #B91C1C; letter-spacing: 8px; font-family: monospace;">${otp}</span>
-                  <span style="display: block; font-size: 12px; font-weight: 600; color: #6B7280; margin-top: 10px;">⏰ Valid for 10 minutes only</span>
-                </div>
-
-                <p style="margin: 24px 0 0 0; color: #6B7280; font-size: 13px; line-height: 1.5;">
-                  <strong>Important Security Note:</strong> Please do not share this OTP with anyone, including New Ajeet Vision staff. If you did not attempt to sign up, you can safely ignore this email.
-                </p>
-              </td>
-            </tr>
-
-            <!-- Footer -->
-            <tr>
-              <td style="background-color: #F9FAFB; padding: 24px 32px; border-top: 1px solid #E5E7EB; text-align: center;">
-                <p style="margin: 0; color: #374151; font-size: 12px; font-weight: 700;">New Ajeet Vision</p>
-                <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Main Market, Main Road Obra, Aurangabad, Bihar - 824124</p>
-                <p style="margin: 4px 0 0 0; color: #6B7280; font-size: 11px;">Helpline: +91 6203314651 | WhatsApp: +91 7488492130</p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
-  </html>
+    <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <h2 style="color: #E51926; margin: 0 0 12px 0; font-size: 22px;">New Ajeet Vision</h2>
+      <p style="font-size: 14px; color: #374151; margin: 0 0 16px 0;">${subtitle}</p>
+      <div style="background-color: #f3f4f6; border-radius: 8px; padding: 18px; text-align: center; margin: 0 0 20px 0;">
+        <span style="font-size: 34px; font-weight: bold; letter-spacing: 8px; color: #111827; font-family: monospace;">${otp}</span>
+      </div>
+      <p style="font-size: 13px; color: #6b7280; margin: 0 0 20px 0;">This code is valid for 10 minutes.</p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+      <p style="font-size: 12px; color: #9ca3af; margin: 0;">New Ajeet Vision • Main Market, Obra, Bihar<br/>Helpline: +91 6203314651</p>
+    </div>
   `;
 };
 
@@ -124,9 +78,7 @@ const generateOtpEmailHtml = (otp, type = 'signup') => {
  */
 const sendOtpEmail = async (toEmail, otp, type = 'signup') => {
   const transporter = getTransporter();
-  const subject = type === 'signup'
-    ? `${otp} is your New Ajeet Vision verification code`
-    : `${otp} is your New Ajeet Vision password reset code`;
+  const subject = `Your New Ajeet Vision Verification Code is ${otp}`;
 
   if (!transporter) {
     console.log(`\n======================================================`);
@@ -149,14 +101,8 @@ const sendOtpEmail = async (toEmail, otp, type = 'signup') => {
     from: `"New Ajeet Vision" <${senderEmail}>`,
     to: toEmail,
     subject,
-    text: `Your New Ajeet Vision verification code is: ${otp}\n\nThis OTP is valid for 10 minutes. Please do not share it with anyone.\n\nNew Ajeet Vision\nMain Market, Main Road Obra, Aurangabad, Bihar\nHelpline: +91 6203314651`,
+    text: `Hello,\n\nYour New Ajeet Vision verification code is: ${otp}\n\nThis code is valid for 10 minutes.\n\nThank you,\nNew Ajeet Vision\nMain Market, Obra, Bihar\nHelpline: +91 6203314651`,
     html: generateOtpEmailHtml(otp, type),
-    priority: 'high',
-    headers: {
-      'X-Priority': '1 (Highest)',
-      'X-MSMail-Priority': 'High',
-      'Importance': 'High',
-    },
   };
 
   const info = await transporter.sendMail(mailOptions);
