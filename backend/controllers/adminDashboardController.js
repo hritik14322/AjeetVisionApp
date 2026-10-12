@@ -41,4 +41,46 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   });
 });
 
-module.exports = { getDashboardStats };
+const getDashboardCustomers = asyncHandler(async (req, res) => {
+  const users = await User.find({ role: 'customer' }).sort({ createdAt: -1 }).lean();
+  
+  const customerList = await Promise.all(users.map(async (u) => {
+    const userPurchases = await Purchase.find({ customer: u._id }).sort({ createdAt: -1 }).lean();
+    const spent = userPurchases.reduce((acc, p) => acc + (p.paidAmount || p.totalAmount || 0), 0);
+    const outstanding = userPurchases.reduce((acc, p) => acc + (p.remainingAmount || 0), 0);
+
+    return {
+      id: u._id.toString(),
+      _id: u._id.toString(),
+      name: u.name || 'Valued Customer',
+      mobile: u.mobile || '',
+      email: u.email || '',
+      points: u.loyaltyPoints || 0,
+      vip: Boolean(u.vipMembership?.isActive),
+      isVipMember: Boolean(u.vipMembership?.isActive),
+      outstanding,
+      spent: spent || (u.rewardProgress?.currentAmount || 0),
+      rewardProgress: Math.min(100, Math.round(((spent || u.rewardProgress?.currentAmount || 0) / 100000) * 100)),
+      joinedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Recent',
+      loyaltyCardNumber: `NAV-${new Date(u.createdAt || Date.now()).getFullYear()}-${u._id.toString().slice(-4).toUpperCase()}`,
+      purchases: userPurchases.map(p => ({
+        _id: p._id.toString(),
+        id: p.invoiceNumber || p._id.toString(),
+        invoiceNumber: p.invoiceNumber || 'INV-001',
+        invoiceNo: p.invoiceNumber || 'INV-001',
+        name: u.name,
+        items: p.items?.[0]?.productName || p.description || 'Showroom Purchase',
+        amount: p.totalAmount || 0,
+        totalAmount: p.totalAmount || 0,
+        paid: p.paidAmount || 0,
+        due: p.remainingAmount || 0,
+        date: new Date(p.createdAt || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
+        status: p.status || 'Paid',
+      })),
+    };
+  }));
+
+  res.json({ success: true, count: customerList.length, customers: customerList });
+});
+
+module.exports = { getDashboardStats, getDashboardCustomers };

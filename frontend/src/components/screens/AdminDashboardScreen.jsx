@@ -319,6 +319,25 @@ const CustomersSection = () => {
   });
 
   React.useEffect(() => {
+    fetch('/api/admin/dashboard/customers')
+      .then(res => res.json())
+      .then(data => {
+        if (data.success && Array.isArray(data.customers) && data.customers.length > 0) {
+          setCustomers(prev => {
+            const merged = [...data.customers];
+            prev.forEach(p => {
+              if (!merged.some(m => (m.email && p.email && m.email.toLowerCase() === p.email.toLowerCase()) || m.id === p.id)) {
+                merged.push(p);
+              }
+            });
+            return merged;
+          });
+        }
+      })
+      .catch(err => console.warn('Could not fetch server customers:', err.message));
+  }, []);
+
+  React.useEffect(() => {
     localStorage.setItem('ADMIN_SYNC_CUSTOMERS', JSON.stringify(customers));
   }, [customers]);
 
