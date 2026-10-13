@@ -104,7 +104,8 @@ export const AppProvider = ({ children }) => {
                 prev.loyaltyPoints !== match.points || 
                 prev.spent !== match.spent ||
                 prev.outstanding !== match.outstanding ||
-                Boolean(prev.isVipMember) !== Boolean(match.vip);
+                Boolean(prev.isVipMember) !== Boolean(match.vip) ||
+                (match.dob && prev.dob !== match.dob);
 
               if (hasChanged) {
                 const updated = {
@@ -114,6 +115,7 @@ export const AppProvider = ({ children }) => {
                   spent: match.spent || 0,
                   outstanding: match.outstanding || 0,
                   loyaltyCardNumber: match.loyaltyCardNumber || prev.loyaltyCardNumber,
+                  dob: match.dob || prev.dob,
                 };
                 localStorage.setItem('nav_user_profile', JSON.stringify(updated));
                 localStorage.setItem('nav_loyalty_pts', JSON.stringify(match.points || 0));

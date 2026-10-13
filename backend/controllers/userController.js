@@ -34,8 +34,18 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
   if (user) {
     user.name = req.body.name || user.name;
-    user.email = req.body.email || user.email;
-    user.dob = req.body.dob || user.dob;
+    if (req.body.dob) {
+      if (user.dob) {
+        const existingDate = new Date(user.dob).toISOString().slice(0, 10);
+        const incomingDate = new Date(req.body.dob).toISOString().slice(0, 10);
+        if (existingDate !== incomingDate) {
+          res.status(400);
+          throw new Error('Birthday date is permanently locked and cannot be edited further.');
+        }
+      } else {
+        user.dob = new Date(req.body.dob);
+      }
+    }
     user.profileImage = req.body.profileImage || user.profileImage;
     
     if (req.body.address) {

@@ -333,7 +333,18 @@ const updateProfile = asyncHandler(async (req, res) => {
     throw new Error('User not found');
   }
 
-  if (dob) user.dob = new Date(dob);
+  if (dob) {
+    if (user.dob) {
+      const existingDate = new Date(user.dob).toISOString().slice(0, 10);
+      const incomingDate = new Date(dob).toISOString().slice(0, 10);
+      if (existingDate !== incomingDate) {
+        res.status(400);
+        throw new Error('Birthday date is permanently locked and cannot be edited further.');
+      }
+    } else {
+      user.dob = new Date(dob);
+    }
+  }
   if (name) user.name = name.trim();
   await user.save();
 

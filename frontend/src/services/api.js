@@ -948,39 +948,43 @@ export const apiService = {
   // ---------------- PROFILE UPDATE (BIRTHDAY, NAME) ----------------
   async updateUserProfile({ email, dob, name }) {
     if (!email) throw new Error('Email is required to update profile');
-    try {
-      const res = await fetch('/api/auth/update-profile', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim().toLowerCase(), dob, name }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.message || 'Failed to update profile');
-      }
 
-      // Update local storage user profile
-      const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      if (userStr) {
+    // Check if user already has dob locally
+    const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
+    if (userStr && dob) {
+      try {
         const u = JSON.parse(userStr);
-        if (dob) u.dob = dob;
-        if (name) u.name = name;
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(u));
+        if (u.dob) {
+          const existingDate = new Date(u.dob).toISOString().slice(0, 10);
+          const incomingDate = new Date(dob).toISOString().slice(0, 10);
+          if (existingDate !== incomingDate) {
+            throw new Error('Birthday date is permanently locked and cannot be edited further.');
+          }
+        }
+      } catch (e) {
+        if (e.message.includes('permanently locked')) throw e;
       }
-
-      return data.user;
-    } catch (err) {
-      // Offline fallback: save locally
-      const userStr = localStorage.getItem(STORAGE_KEYS.CURRENT_USER);
-      if (userStr) {
-        const u = JSON.parse(userStr);
-        if (dob) u.dob = dob;
-        if (name) u.name = name;
-        localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(u));
-        return u;
-      }
-      throw err;
     }
+
+    const res = await fetch('/api/auth/update-profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email.trim().toLowerCase(), dob, name }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to update profile');
+    }
+
+    // Update local storage user profile
+    if (userStr) {
+      const u = JSON.parse(userStr);
+      if (dob && !u.dob) u.dob = dob;
+      if (name) u.name = name;
+      localStorage.setItem(STORAGE_KEYS.CURRENT_USER, JSON.stringify(u));
+    }
+
+    return data.user;
   },
 
   // ---------------- BIRTHDAY REWARD ----------------

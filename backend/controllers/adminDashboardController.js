@@ -58,6 +58,7 @@ const getDashboardCustomers = asyncHandler(async (req, res) => {
       points: u.loyaltyPoints || 0,
       vip: Boolean(u.vipMembership?.isActive),
       isVipMember: Boolean(u.vipMembership?.isActive),
+      dob: u.dob || null,
       outstanding,
       spent: spent || (u.rewardProgress?.currentAmount || 0),
       rewardProgress: Math.min(100, Math.round(((spent || u.rewardProgress?.currentAmount || 0) / 100000) * 100)),

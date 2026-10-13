@@ -189,7 +189,7 @@ export const ProfileScreen = () => {
             </div>
             <p className="text-[11px] text-gray-600 mt-0.5">
               {currentUser?.dob || currentUser?.birthday
-                ? `Saved: ${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} • Special discount active on your birthday!`
+                ? `Registered: ${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} • Permanently Locked 🔒`
                 : 'Add your birthday date to get special discount on that birthday date!'}
             </p>
           </div>
@@ -200,7 +200,7 @@ export const ProfileScreen = () => {
           className="py-2 px-3.5 bg-gradient-to-r from-brand-red to-rose-600 hover:from-red-700 hover:to-rose-700 text-white font-bold text-xs rounded-xl shadow-xs transition active:scale-95 whitespace-nowrap flex items-center gap-1.5 cursor-pointer"
         >
           <Gift className="w-3.5 h-3.5" />
-          <span>{currentUser?.dob || currentUser?.birthday ? 'Edit Date' : 'Add Birthday 🎂'}</span>
+          <span>{currentUser?.dob || currentUser?.birthday ? 'View Voucher 🎁' : 'Add Birthday 🎂'}</span>
         </button>
       </div>
 
@@ -237,10 +237,10 @@ export const ProfileScreen = () => {
           },
           {
             id: 'birthday',
-            label: currentUser?.dob || currentUser?.birthday ? 'Birthday Special Discount' : 'Add Birthday Date 🎂',
+            label: currentUser?.dob || currentUser?.birthday ? 'Birthday Special Discount (Locked 🔒)' : 'Add Birthday Date 🎂',
             icon: Cake,
             badge: currentUser?.dob || currentUser?.birthday 
-              ? `${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })}`
+              ? `${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} 🔒`
               : '₹1,500 Coupon',
             onClick: () => setIsBirthdayModalOpen(true),
           },
