@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Crown, CheckCircle2, Sparkles, Shield, ArrowRight } from 'lucide-react';
-import { apiService } from '../../services/api';
+import { X, Crown, CheckCircle2, Sparkles, Shield, ArrowRight, RefreshCw, AlertCircle } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
 const loadRazorpayScript = () => {
@@ -20,11 +19,122 @@ const loadRazorpayScript = () => {
 };
 
 export const JoinVipModal = () => {
-  const { isJoinVipModalOpen, setIsJoinVipModalOpen, currentUser, setCurrentUser, showToast } = useApp();
+  const { isJoinVipModalOpen, setIsJoinVipModalOpen, currentUser, setCurrentUser, showToast, syncCustomerFromDb } = useApp();
   const [loading, setLoading] = useState(false);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
+  const [activeOrderId, setActiveOrderId] = useState(() => localStorage.getItem('NAV_LAST_VIP_ORDER_ID') || null);
+  const pollTimerRef = useRef(null);
+
+  // Clean up poller on unmount
+  useEffect(() => {
+    return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    };
+  }, []);
 
   if (!isJoinVipModalOpen) return null;
+
+  const markVipSuccess = (userData) => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    const updated = {
+      ...currentUser,
+      isVipMember: true,
+      vip: true,
+      ...(userData || {}),
+    };
+    setCurrentUser(updated);
+    localStorage.setItem('nav_user_profile', JSON.stringify(updated));
+    localStorage.removeItem('NAV_LAST_VIP_ORDER_ID');
+    setJoinedSuccess(true);
+    setLoading(false);
+    setCheckingStatus(false);
+    showToast('🎉 VIP Membership Activated Successfully!', 'success');
+    if (syncCustomerFromDb) {
+      syncCustomerFromDb(updated);
+    }
+    try {
+      confetti({ particleCount: 90, spread: 80, origin: { y: 0.6 } });
+    } catch (e) {}
+  };
+
+  // Start background order polling to auto-detect payment completion
+  const startOrderPolling = (orderId) => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    let attempts = 0;
+    const maxAttempts = 12; // 12 * 2.5s = 30 seconds
+
+    pollTimerRef.current = setInterval(async () => {
+      attempts += 1;
+      try {
+        const res = await fetch('/api/vip/check-order-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId,
+            email: currentUser?.email,
+            customerId: currentUser?._id || currentUser?.id,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.isVip) {
+          clearInterval(pollTimerRef.current);
+          markVipSuccess(data.user);
+        }
+      } catch (err) {
+        // Continue polling silently
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(pollTimerRef.current);
+      }
+    }, 2500);
+  };
+
+  // Manual check button if user completed payment
+  const handleVerifyExistingPayment = async () => {
+    try {
+      setCheckingStatus(true);
+      const orderToCheck = activeOrderId || localStorage.getItem('NAV_LAST_VIP_ORDER_ID');
+
+      if (orderToCheck) {
+        const orderRes = await fetch('/api/vip/check-order-status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            orderId: orderToCheck,
+            email: currentUser?.email,
+            customerId: currentUser?._id || currentUser?.id,
+          }),
+        });
+        const orderData = await orderRes.json();
+        if (orderData.success && orderData.isVip) {
+          markVipSuccess(orderData.user);
+          return;
+        }
+      }
+
+      // Check recent payments directly via Razorpay API
+      const recentRes = await fetch('/api/vip/verify-recent-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentUser?.email,
+          customerId: currentUser?._id || currentUser?.id,
+        }),
+      });
+      const recentData = await recentRes.json();
+      if (recentData.success && recentData.isVip) {
+        markVipSuccess();
+      } else {
+        showToast(recentData.message || 'No confirmed ₹499 payment found yet. Please complete checkout.', 'info');
+      }
+    } catch (err) {
+      showToast('Could not verify status. Please try again.', 'error');
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
 
   const handleJoin = async () => {
     try {
@@ -50,6 +160,12 @@ export const JoinVipModal = () => {
       if (!orderRes.ok || !orderData.orderId) {
         throw new Error(orderData.message || 'Failed to create payment order. Please try again.');
       }
+
+      setActiveOrderId(orderData.orderId);
+      localStorage.setItem('NAV_LAST_VIP_ORDER_ID', orderData.orderId);
+
+      // Start automatic polling in background while Razorpay is open
+      startOrderPolling(orderData.orderId);
 
       // 3. Open official Razorpay Checkout window branded as New Ajeet Vision
       const options = {
@@ -84,26 +200,50 @@ export const JoinVipModal = () => {
             });
 
             const verifyData = await verifyRes.json();
-            if (!verifyRes.ok) {
-              throw new Error(verifyData.message || 'Payment signature verification failed.');
+            if (verifyRes.ok && verifyData.success) {
+              markVipSuccess(verifyData.user);
+            } else {
+              // Try check-order-status fallback
+              const fallbackRes = await fetch('/api/vip/check-order-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: response.razorpay_order_id || orderData.orderId,
+                  email: currentUser?.email,
+                  customerId: currentUser?._id || currentUser?.id,
+                }),
+              });
+              const fallbackData = await fallbackRes.json();
+              if (fallbackData.success && fallbackData.isVip) {
+                markVipSuccess(fallbackData.user);
+              } else {
+                throw new Error(verifyData.message || 'Payment verification failed.');
+              }
             }
-
-            const updated = { ...currentUser, isVipMember: true };
-            setCurrentUser(updated);
-            localStorage.setItem('nav_user_profile', JSON.stringify(updated));
-            setJoinedSuccess(true);
-            showToast('🎉 VIP Membership Activated Successfully!', 'success');
-            try {
-              confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-            } catch (e) {}
           } catch (err) {
             showToast(err.message || 'Payment verification failed', 'error');
-          } finally {
             setLoading(false);
           }
         },
         modal: {
-          ondismiss: () => {
+          ondismiss: async () => {
+            // When modal closes, immediately verify if order was completed
+            try {
+              const checkRes = await fetch('/api/vip/check-order-status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: orderData.orderId,
+                  email: currentUser?.email,
+                  customerId: currentUser?._id || currentUser?.id,
+                }),
+              });
+              const checkData = await checkRes.json();
+              if (checkData.success && checkData.isVip) {
+                markVipSuccess(checkData.user);
+                return;
+              }
+            } catch (e) {}
             setLoading(false);
           },
         },
@@ -122,6 +262,7 @@ export const JoinVipModal = () => {
   };
 
   const handleClose = () => {
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     setIsJoinVipModalOpen(false);
     setJoinedSuccess(false);
   };
@@ -157,7 +298,7 @@ export const JoinVipModal = () => {
           </div>
         </div>
 
-        {joinedSuccess ? (
+        {joinedSuccess || currentUser?.isVipMember ? (
           <div className="p-6 text-center space-y-4">
             <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto">
               <Sparkles className="w-8 h-8" />
@@ -167,7 +308,7 @@ export const JoinVipModal = () => {
               Congratulations! You are now a Verified VIP Customer of New Ajeet Vision. You will get special member pricing on all electronics, free delivery, and an extra 500 loyalty bonus points!
             </p>
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900">
-              Valid for 365 Days • Active on +91 98765 43210
+              Valid for 365 Days • Active on {currentUser?.mobile || currentUser?.email || 'Your Account'}
             </div>
             <button
               onClick={handleClose}
@@ -205,12 +346,12 @@ export const JoinVipModal = () => {
 
             <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-100 flex items-center justify-between text-xs">
               <span className="text-gray-500">Total Subscription Fee</span>
-              <span className="font-extrabold text-brand-red text-sm">₹499 (All Inclusive)</span>
+              <span className="font-extrabold text-[#E51926] text-sm">₹499 (All Inclusive)</span>
             </div>
 
             <div className="flex items-center gap-2 text-[11px] text-gray-400">
               <Shield className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-              <span>Instant activation directly through the web application</span>
+              <span>Instant activation directly verified with Razorpay</span>
             </div>
 
             <button
@@ -219,9 +360,31 @@ export const JoinVipModal = () => {
               onClick={handleJoin}
               className="w-full py-3.5 bg-[#E51926] hover:bg-red-700 text-white font-bold rounded-xl text-xs sm:text-sm transition flex items-center justify-center gap-2 shadow-lg shadow-red-500/20 disabled:opacity-60"
             >
-              {loading ? 'Processing VIP Activation...' : 'Pay ₹499 & Activate VIP Membership'}
-              <ArrowRight className="w-4 h-4" />
+              {loading ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                  <span>Processing VIP Activation...</span>
+                </>
+              ) : (
+                <>
+                  <span>Pay ₹499 & Activate VIP Membership</span>
+                  <ArrowRight className="w-4 h-4" />
+                </>
+              )}
             </button>
+
+            {/* Verification fallback helper */}
+            <div className="pt-2 text-center border-t border-gray-100">
+              <button
+                type="button"
+                disabled={checkingStatus}
+                onClick={handleVerifyExistingPayment}
+                className="text-[11px] text-gray-500 hover:text-gray-800 font-semibold inline-flex items-center gap-1.5 underline decoration-gray-300 transition"
+              >
+                <RefreshCw className={`w-3 h-3 ${checkingStatus ? 'animate-spin' : ''}`} />
+                <span>{checkingStatus ? 'Checking Razorpay status...' : 'Already completed payment? Verify VIP Status'}</span>
+              </button>
+            </div>
           </div>
         )}
       </div>

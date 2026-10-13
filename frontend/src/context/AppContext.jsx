@@ -388,6 +388,7 @@ export const AppProvider = ({ children }) => {
         toasts,
         showToast,
         removeToast,
+        syncCustomerFromDb,
       }}
     >
       {children}
