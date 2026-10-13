@@ -29,6 +29,7 @@ import { NotificationsScreen } from './components/screens/NotificationsScreen';
 import { ProfileScreen } from './components/screens/ProfileScreen';
 import { AdminDashboardScreen } from './components/screens/AdminDashboardScreen';
 import { AdminLoginScreen } from './components/screens/AdminLoginScreen';
+import { LegalTermsScreen } from './components/screens/LegalTermsScreen';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -109,6 +110,9 @@ const AppContent = () => {
         return <AdminLoginScreen />;
       case 'admin_dashboard':
         return <AdminDashboardScreen />;
+      case 'terms':
+      case 'legal':
+        return <LegalTermsScreen />;
       default:
         return <HomeScreen />;
     }

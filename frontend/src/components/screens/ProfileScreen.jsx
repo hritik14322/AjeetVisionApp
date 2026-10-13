@@ -16,9 +16,9 @@ import {
   Gift,
   Settings,
   LogOut,
-  Sparkles,
   Store,
   Phone,
+  FileText,
 } from 'lucide-react';
 import { SHOWROOM_INFO } from '../../data/mockData';
 
@@ -250,6 +250,13 @@ export const ProfileScreen = () => {
             icon: Store,
             badge: 'Obra Branch',
             onClick: () => setIsStoreLocatorOpen(true),
+          },
+          {
+            id: 'legal',
+            label: 'Legal Terms & Showroom Policies',
+            icon: FileText,
+            badge: 'Official',
+            onClick: () => navigateTo('terms'),
           },
           {
             id: 'admin',

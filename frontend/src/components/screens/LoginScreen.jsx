@@ -374,6 +374,13 @@ export const LoginScreen = () => {
             >
               Skip & Explore Store as Guest →
             </button>
+            <button
+              type="button"
+              onClick={() => navigateTo('terms')}
+              className="text-[10px] text-white/80 hover:text-white underline decoration-white/40 mt-2 cursor-pointer"
+            >
+              Legal Terms & Showroom Policies
+            </button>
           </div>
 
         </div>

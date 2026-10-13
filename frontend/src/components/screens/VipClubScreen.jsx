@@ -18,7 +18,7 @@ import {
 import { VIP_CLUB_BENEFITS } from '../../data/mockData';
 
 export const VipClubScreen = () => {
-  const { goBack, setIsJoinVipModalOpen, currentUser } = useApp();
+  const { goBack, setIsJoinVipModalOpen, currentUser, navigateTo } = useApp();
   const [showTerms, setShowTerms] = useState(false);
 
   const isVip = currentUser?.isVipMember;
@@ -132,6 +132,16 @@ export const VipClubScreen = () => {
               <p>• Discounts applicable across TV, Refrigerators, AC, Washing Machines and all major appliances.</p>
               <p>• Free doorstep delivery eligible within 25km radius of New Ajeet Vision Showroom, Obra.</p>
               <p>• Non-refundable and tied to your registered showroom mobile number.</p>
+              <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
+                <button
+                  type="button"
+                  onClick={() => navigateTo('terms')}
+                  className="text-xs font-bold text-[#E51926] hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Read Complete Legal Terms & Showroom Policies</span>
+                  <span>→</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
