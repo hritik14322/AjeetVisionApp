@@ -69,7 +69,7 @@ export const AdminLoginScreen = () => {
                 <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                 <input
                   type="email"
-                  placeholder="admin@newajeetvision.com"
+                  placeholder="Enter admin email"
                   value={form.email}
                   onChange={e => { setForm(f => ({ ...f, email: e.target.value })); setError(''); }}
                   className="w-full bg-white/8 border border-white/15 rounded-[14px] pl-11 pr-4 py-3.5 text-white text-[14px] placeholder:text-white/30 focus:outline-none focus:border-[#FF3B4A] transition-colors"
@@ -126,17 +126,10 @@ export const AdminLoginScreen = () => {
           </form>
         </div>
 
-        {/* Hint */}
-        <div className="mt-5 bg-white/5 border border-white/10 rounded-[16px] px-4 py-3.5">
-          <p className="text-white/40 text-[11px] font-medium text-center mb-1">Default Credentials</p>
-          <p className="text-white/60 text-[12px] text-center font-mono">admin@newajeetvision.com</p>
-          <p className="text-white/60 text-[12px] text-center font-mono">Admin@2024</p>
-        </div>
-
         {/* Back to App */}
         <button
           onClick={() => navigateTo('home')}
-          className="mt-5 w-full text-center text-white/40 text-[13px] font-medium hover:text-white/70 transition-colors">
+          className="mt-6 w-full text-center text-white/40 text-[13px] font-medium hover:text-white/70 transition-colors">
           ← Back to Customer App
         </button>
       </div>

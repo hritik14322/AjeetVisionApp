@@ -3,7 +3,8 @@ import { useApp } from '../../context/AppContext';
 import { LayoutDashboard, Users, ShoppingBag, Gift, Tag, Image, Star,
   TrendingUp, CreditCard, UserCheck, ArrowUpRight, ChevronRight,
   Edit2, Save, X, Plus, Trash2, Settings, ToggleLeft, ToggleRight,
-  Package, Megaphone, Zap, Crown, ArrowLeft, Check, Upload, DollarSign, RotateCcw
+  Package, Megaphone, Zap, Crown, ArrowLeft, Check, Upload, DollarSign, RotateCcw,
+  Search
 } from 'lucide-react';
 import { CATEGORIES, PRODUCTS } from '../../data/mockData';
 
@@ -245,6 +246,7 @@ const OverviewSection = () => {
 // ── SECTION: Customers
 const CustomersSection = () => {
   const [filter, setFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [pointsForm, setPointsForm] = useState({ amount: '', reason: '', note: '' });
   const [pointsSaved, setPointsSaved] = useState(false);
@@ -307,11 +309,18 @@ const CustomersSection = () => {
     return () => clearInterval(interval);
   }, [fetchCustomersFromDb]);
 
-  const filtered = filter === 'vip'
-    ? customers.filter(c => c.vip)
-    : filter === 'outstanding'
-    ? customers.filter(c => c.outstanding > 0)
-    : customers;
+  const filtered = customers.filter(c => {
+    const matchesFilter = filter === 'vip' ? c.vip : filter === 'outstanding' ? c.outstanding > 0 : true;
+    if (!matchesFilter) return false;
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    return (
+      (c.name && c.name.toLowerCase().includes(q)) ||
+      (c.email && c.email.toLowerCase().includes(q)) ||
+      (c.mobile && c.mobile.includes(q)) ||
+      (c.loyaltyCardNumber && c.loyaltyCardNumber.toLowerCase().includes(q))
+    );
+  });
 
   const handleGivePoints = async () => {
     if (!pointsForm.amount || Number(pointsForm.amount) <= 0 || !selectedCustomer) return;
@@ -1093,14 +1102,45 @@ const CustomersSection = () => {
   // ─── Customer List View ───
   return (
     <div className="space-y-4">
-      <div className="flex gap-2">
-        {['all','vip','outstanding'].map(f => (
-          <button key={f} onClick={() => setFilter(f)}
-            className={`px-4 py-2 rounded-full text-[13px] font-semibold capitalize transition-all ${filter===f ? 'bg-[#0B1527] text-white' : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:border-[#0B1527]'}`}>
-            {f === 'outstanding' ? '⚠️ Outstanding' : f === 'vip' ? '👑 VIP Only' : 'All'}
-          </button>
-        ))}
+      {/* Search Bar & Filters */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search className="w-4 h-4 text-[#94A3B8] absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <input
+            type="text"
+            placeholder="Search customers by name, phone, email, or loyalty card ID..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-[#E2E8F0] rounded-[16px] pl-10 pr-10 py-3 text-[14px] text-[#0B1527] placeholder:text-[#94A3B8] shadow-sm focus:outline-none focus:border-[#FF3B4A] focus:ring-2 focus:ring-[#FF3B4A]/10 transition-all"
+          />
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center text-[#64748B] transition-colors"
+              title="Clear search"
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex gap-2">
+            {['all','vip','outstanding'].map(f => (
+              <button key={f} onClick={() => setFilter(f)}
+                className={`px-4 py-2 rounded-full text-[13px] font-semibold capitalize transition-all ${filter===f ? 'bg-[#0B1527] text-white' : 'bg-white border border-[#E2E8F0] text-[#64748B] hover:border-[#0B1527]'}`}>
+                {f === 'outstanding' ? '⚠️ Outstanding' : f === 'vip' ? '👑 VIP Only' : 'All'}
+              </button>
+            ))}
+          </div>
+          {searchQuery && (
+            <span className="text-[12px] font-medium text-[#64748B]">
+              Found <strong className="text-[#0B1527]">{filtered.length}</strong> matching "{searchQuery}"
+            </span>
+          )}
+        </div>
       </div>
+
       <SectionCard>
         <div className="flex flex-wrap items-center justify-between gap-3 p-5 border-b border-[#F1E5DB]">
           <div>
@@ -1124,31 +1164,53 @@ const CustomersSection = () => {
           </button>
         </div>
         <div className="divide-y divide-[#F7F8FA]">
-          {filtered.map((c) => (
-            <div key={c.id}
-              onClick={() => { setSelectedCustomer(c); setPointsTab('give'); setPointsSaved(false); setPointsForm({ amount: '', reason: '', note: '' }); }}
-              className="px-5 py-4 flex items-center justify-between hover:bg-[#FFF5F5] transition-colors cursor-pointer group">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF3B4A] to-[#0B1527] flex items-center justify-center text-white font-bold text-[15px]">
-                  {c.name[0]}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className="text-[#0B1527] font-semibold text-[14px]">{c.name}</p>
-                    {c.vip && <span className="text-[9px] font-bold bg-[#FEF5E7] text-[#F59E0B] px-1.5 py-0.5 rounded-full">👑 VIP</span>}
+          {filtered.length > 0 ? (
+            filtered.map((c) => (
+              <div key={c.id}
+                onClick={() => { setSelectedCustomer(c); setPointsTab('give'); setPointsSaved(false); setPointsForm({ amount: '', reason: '', note: '' }); }}
+                className="px-5 py-4 flex items-center justify-between hover:bg-[#FFF5F5] transition-colors cursor-pointer group">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FF3B4A] to-[#0B1527] flex items-center justify-center text-white font-bold text-[15px]">
+                    {c.name ? c.name[0] : 'U'}
                   </div>
-                  <p className="text-[#64748B] text-[12px]">{c.mobile} · ⭐ {c.points} pts</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <p className="text-[#0B1527] font-semibold text-[14px]">{c.name}</p>
+                      {c.vip && <span className="text-[9px] font-bold bg-[#FEF5E7] text-[#F59E0B] px-1.5 py-0.5 rounded-full">👑 VIP</span>}
+                    </div>
+                    <p className="text-[#64748B] text-[12px]">
+                      {c.mobile || 'No Phone'} {c.loyaltyCardNumber ? `· ${c.loyaltyCardNumber}` : ''} · ⭐ {c.points || 0} pts
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <div className="text-right">
+                    <p className="text-[#0B1527] font-bold text-[14px]">₹{(Number(c.spent) || 0).toLocaleString('en-IN')}</p>
+                    {c.outstanding > 0 && <p className="text-[#FF3B4A] font-semibold text-[11px]">Due: ₹{c.outstanding.toLocaleString('en-IN')}</p>}
+                  </div>
+                  <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#FF3B4A] transition-colors" />
                 </div>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="text-right">
-                  <p className="text-[#0B1527] font-bold text-[14px]">₹{c.spent.toLocaleString('en-IN')}</p>
-                  {c.outstanding > 0 && <p className="text-[#FF3B4A] font-semibold text-[11px]">Due: ₹{c.outstanding.toLocaleString('en-IN')}</p>}
-                </div>
-                <ChevronRight className="w-4 h-4 text-[#CBD5E1] group-hover:text-[#FF3B4A] transition-colors" />
+            ))
+          ) : (
+            <div className="p-10 text-center space-y-2">
+              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center mx-auto text-gray-400">
+                <Search className="w-6 h-6" />
               </div>
+              <p className="text-[14px] font-bold text-[#0B1527]">No customers found</p>
+              <p className="text-[12px] text-[#64748B]">
+                {searchQuery ? `No matching customers for "${searchQuery}". Try a different name, phone, or email.` : 'No customers in this category.'}
+              </p>
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="mt-2 text-[12px] font-semibold text-[#FF3B4A] hover:underline cursor-pointer"
+                >
+                  Clear search query
+                </button>
+              )}
             </div>
-          ))}
+          )}
         </div>
       </SectionCard>
     </div>
