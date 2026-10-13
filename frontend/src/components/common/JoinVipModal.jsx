@@ -300,19 +300,19 @@ export const JoinVipModal = () => {
 
         {joinedSuccess || currentUser?.isVipMember ? (
           <div className="p-6 text-center space-y-4">
-            <div className="w-16 h-16 bg-amber-100 text-amber-700 rounded-full flex items-center justify-center mx-auto">
-              <Sparkles className="w-8 h-8" />
+            <div className="w-16 h-16 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-xs border border-emerald-200">
+              <CheckCircle2 className="w-9 h-9 text-emerald-600" />
             </div>
             <h3 className="text-lg font-black text-gray-900">VIP Membership Activated!</h3>
-            <p className="text-xs text-gray-600">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Congratulations! You are now a Verified VIP Customer of New Ajeet Vision. You will get special member pricing on all electronics, free delivery, and an extra 500 loyalty bonus points!
             </p>
             <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs font-semibold text-amber-900">
-              Valid for 365 Days • Active on {currentUser?.mobile || currentUser?.email || 'Your Account'}
+              Valid for 365 Days • Active on {new Date(currentUser?.vipMembership?.createdAt || currentUser?.vipActivationDate || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
             <button
               onClick={handleClose}
-              className="w-full py-3 bg-[#E51926] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-sm"
+              className="w-full py-3 bg-[#E51926] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
             >
               Explore VIP Member Benefits
             </button>
