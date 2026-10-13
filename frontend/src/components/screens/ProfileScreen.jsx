@@ -237,18 +237,18 @@ export const ProfileScreen = () => {
           },
           {
             id: 'birthday',
-            label: currentUser?.dob || currentUser?.birthday ? 'Birthday Special Discount (Locked 🔒)' : 'Add Birthday Date 🎂',
+            label: 'Birthday Special Discount',
             icon: Cake,
             badge: currentUser?.dob || currentUser?.birthday 
               ? `${new Date(currentUser?.dob || currentUser?.birthday).toLocaleDateString('en-IN', { day: '2-digit', month: 'short' })} 🔒`
-              : '₹1,500 Coupon',
+              : (isVip ? '₹1,500 Off' : '₹1,000 Off'),
             onClick: () => setIsBirthdayModalOpen(true),
           },
           {
             id: 'locator',
             label: 'Showroom Location & Contact',
             icon: Store,
-            badge: 'Obra Branch',
+            badge: 'Obra, Bihar',
             onClick: () => setIsStoreLocatorOpen(true),
           },
           {
@@ -271,24 +271,24 @@ export const ProfileScreen = () => {
             <button
               key={item.id}
               onClick={item.onClick}
-              className="w-full p-4 flex items-center justify-between text-left hover:bg-gray-50/70 transition group"
+              className="w-full p-3.5 sm:p-4 flex items-center justify-between text-left hover:bg-gray-50/70 transition group cursor-pointer gap-2"
             >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center group-hover:bg-red-50 group-hover:text-brand-red transition">
+              <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                <div className="w-8 h-8 rounded-xl bg-gray-100 text-gray-700 flex items-center justify-center flex-shrink-0 group-hover:bg-red-50 group-hover:text-brand-red transition">
                   <Icon className="w-4 h-4" />
                 </div>
-                <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-gray-950 transition">
+                <span className="text-xs sm:text-sm font-bold text-gray-800 group-hover:text-gray-950 transition truncate">
                   {item.label}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
                 {item.badge && (
-                  <span className="px-2 py-0.5 bg-red-50 text-brand-red text-[11px] font-bold rounded-lg border border-red-100">
+                  <span className="px-2 py-0.5 bg-red-50 text-brand-red text-[10.5px] sm:text-[11px] font-bold rounded-lg border border-red-100 whitespace-nowrap">
                     {item.badge}
                   </span>
                 )}
-                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform" />
+                <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-0.5 transition-transform flex-shrink-0" />
               </div>
             </button>
           );

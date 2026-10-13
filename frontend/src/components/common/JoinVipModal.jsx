@@ -344,8 +344,8 @@ export const JoinVipModal = () => {
             <ul className="space-y-2.5 text-xs text-gray-700">
               {[
                 'Special VIP Member Pricing on TVs, Fridges & Appliances',
-                'Priority & Free Showroom Delivery within 25km',
-                'Birthday Gift Voucher of ₹1,500 guaranteed',
+                'Priority & Free Showroom Delivery within 10km (orders above ₹10k)',
+                'Exclusive ₹1,500 Birthday Voucher (₹1,000 for regular customers)',
                 '24-Hour Early Access to Festive Dhanteras & Diwali Sales',
                 'Annual Lucky Draw ticket for Promotional Goa Trip',
                 'Dedicated Showroom Installation & Service Line',

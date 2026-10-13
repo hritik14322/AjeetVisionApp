@@ -5,13 +5,13 @@ export const SHOWROOM_INFO = {
   tagline: "Electronics Showroom",
   subTagline: "Your Trusted Electronics Partner",
   since: "1984",
-  address: "Main Market, Main Road Obra, Aurangabad, Bihar - 824124",
-  phone: "+91 6203314651, +91 7488475307",
+  address: "Main Market, Obra, Aurangabad, Bihar - 824124",
+  phone: "+91 7488492130, +91 7488475307",
   whatsapp: "+917488492130",
-  email: "support@newajeetvision.com",
+  email: "ajeetvisionnew@gmail.com, arbindkumarobra@gmail.com",
   gstin: "GST Registered",
   hours: "10:00 AM - 9:00 PM (Open All 7 Days)",
-  googleMapsUrl: "https://maps.google.com/?q=New+Ajeet+Vision+Obra",
+  googleMapsUrl: "https://maps.google.com/?q=New+Ajeet+Vision+Obra+Aurangabad+Bihar",
 };
 
 export const INITIAL_USER = null;
@@ -595,14 +595,14 @@ export const VIP_CLUB_BENEFITS = [
   },
   {
     id: "b-3",
-    title: "Priority / Free Delivery (Selected)",
-    description: "Express same-day delivery & zero delivery fee across 25km showroom radius.",
+    title: "Priority / Free Delivery (Above ₹10k)",
+    description: "Free doorstep delivery within 10km showroom radius on purchases above ₹10,000.",
     icon: "Truck",
   },
   {
     id: "b-4",
     title: "Birthday & Festival Offers",
-    description: "Guaranteed ₹1,500 birthday gift coupon + extra Dhanteras festive rewards.",
+    description: "Guaranteed ₹1,500 birthday gift voucher (₹1,000 for regular users) + festive rewards.",
     icon: "Cake",
   },
   {

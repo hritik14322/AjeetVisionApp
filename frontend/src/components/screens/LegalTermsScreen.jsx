@@ -21,7 +21,6 @@ import {
 export const LegalTermsScreen = () => {
   const { goBack, navigateTo, currentUser } = useApp();
   const [activeTab, setActiveTab] = useState('general');
-  const [searchQuery, setSearchQuery] = useState('');
 
   const tabs = [
     { id: 'general', label: 'Terms of Service', icon: FileText },
@@ -71,13 +70,13 @@ export const LegalTermsScreen = () => {
               NEW AJEET VISION
             </h1>
             <p className="text-xs text-gray-300 mt-1 max-w-md leading-relaxed">
-              Main Market, Obra, Sonbhadra, Uttar Pradesh 231219. Governed by Consumer Protection Act, 2019 & Information Technology Act, 2000.
+              Main Market, Obra, Aurangabad, Bihar - 824124. Governed by Consumer Protection Act, 2019 & Information Technology Act, 2000.
             </p>
           </div>
           <div className="text-left sm:text-right text-[11px] text-gray-400 border-t sm:border-t-0 sm:border-l border-white/10 pt-3 sm:pt-0 sm:pl-4">
             <span className="block font-semibold text-gray-300">Effective Date:</span>
             <span className="font-mono text-amber-400">13 October 2026</span>
-            <span className="block text-[10px] text-gray-500 mt-0.5">Version 2.4 (Updated)</span>
+            <span className="block text-[10px] text-gray-500 mt-0.5">Version 2.5 (Showroom Verified)</span>
           </div>
         </div>
       </div>
@@ -123,7 +122,7 @@ export const LegalTermsScreen = () => {
                 1.1 Showroom Identity & Eligibility
               </h3>
               <p>
-                This application is operated by <strong>New Ajeet Vision</strong> (hereinafter referred to as "NAV", "we", "us", or "our"), an authorized consumer electronics and home appliances showroom located at Main Market, Obra, Sonbhadra, Uttar Pradesh 231219. By accessing or registering an account on this platform, you certify that you are at least 18 years of age and competent to enter into a legally binding contract under the Indian Contract Act, 1872.
+                This application is operated by <strong>New Ajeet Vision</strong> (hereinafter referred to as "NAV", "we", "us", or "our"), an authorized consumer electronics and home appliances showroom located at <strong>Main Market, Obra, Aurangabad, Bihar - 824124</strong>. By accessing or registering an account on this platform, you certify that you are at least 18 years of age and competent to enter into a legally binding contract under the Indian Contract Act, 1872.
               </p>
             </section>
 
@@ -138,7 +137,7 @@ export const LegalTermsScreen = () => {
 
             <section className="space-y-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
-                1.3 Outstanding Payments & Instalment Terms
+                1.3 Outstanding Payments & Deferred Balances
               </h3>
               <p>
                 Where a showroom transaction includes deferred payment or instalment terms ("Remaining / Outstanding Amount"), the customer agrees to settle the remaining dues within the timeline stipulated on the showroom invoice. New Ajeet Vision reserves the right to issue reminders via SMS, WhatsApp, and registered email.
@@ -174,7 +173,7 @@ export const LegalTermsScreen = () => {
                 2.1 Membership Fee & Validity
               </h3>
               <p>
-                The New Ajeet Vision VIP Membership is priced at a flat annual subscription fee of <strong>₹499 (All Inclusive)</strong>. Upon successful payment verification via our authorized gateway (Razorpay), membership is activated immediately and remains valid for exactly <strong>365 calendar days (1 full year)</strong>.
+                The New Ajeet Vision VIP Membership is priced at an annual subscription fee of <strong>₹499 (All Inclusive)</strong>. Upon successful payment verification via our authorized gateway (Razorpay), membership is activated immediately and remains valid for exactly <strong>365 calendar days (1 full year)</strong>.
               </p>
             </section>
 
@@ -183,20 +182,20 @@ export const LegalTermsScreen = () => {
                 2.2 Non-Refundable Nature
               </h3>
               <p>
-                The ₹499 VIP membership fee is non-refundable and non-transferable once activated. It cannot be exchanged for cash, nor can it be adjusted against the retail purchase price of appliances unless explicitly sanctioned under a showroom festive bundle promotion.
+                The ₹499 VIP membership fee is non-refundable and non-transferable once activated. It cannot be exchanged for cash, nor can it be adjusted against the retail purchase price of appliances unless explicitly sanctioned under an official showroom promotional bundle.
               </p>
             </section>
 
             <section className="space-y-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
-                2.3 Member Privileges & Scope
+                2.3 Member Privileges & Delivery Rules
               </h3>
               <ul className="list-disc pl-5 space-y-1.5 text-gray-700">
                 <li><strong>Exclusive Member Pricing:</strong> VIP discounts applicable on select Smart TVs, Refrigerators, and Appliances.</li>
-                <li><strong>Priority Showroom Delivery:</strong> Complimentary doorstep transport within a 25 km radius of Obra Showroom.</li>
-                <li><strong>Guaranteed Birthday Gift:</strong> Automatic entitlement to a ₹1,500 birthday voucher valid during the customer's birthday month.</li>
+                <li><strong>Priority Free Showroom Delivery:</strong> Complimentary doorstep delivery within <strong>10 km radius</strong> of the Obra showroom on purchase amounts of <strong>₹10,000 and above</strong>.</li>
+                <li><strong>Guaranteed VIP Birthday Gift:</strong> Maximum <strong>₹1,500 birthday voucher</strong> (compared to ₹1,000 for regular customers) valid during the customer's birthday month.</li>
                 <li><strong>24-Hour Early Access:</strong> Priority booking during Dhanteras, Diwali, and New Year promotional inventory allocations.</li>
-                <li><strong>Annual Promotional Lucky Draw:</strong> Automatically registered for the annual customer appreciation draw.</li>
+                <li><strong>Dedicated Showroom Desk:</strong> Expedited billing and after-sales coordination.</li>
               </ul>
             </section>
 
@@ -240,11 +239,30 @@ export const LegalTermsScreen = () => {
 
             <section className="space-y-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
-                3.2 Birthday Voucher Terms (BDAY-AJEET-1500)
+                3.2 Tiered Birthday Voucher Terms
               </h3>
-              <p>
-                The ₹1,500 birthday voucher is applicable exclusively on showroom appliance purchases with a minimum invoice value of <strong>₹10,000</strong>. The coupon must be presented at the billing counter during the customer's registered birthday month. Only one birthday discount voucher may be redeemed per customer per calendar year.
-              </p>
+              <div className="space-y-2 text-gray-700">
+                <p>
+                  Birthday vouchers are valid on showroom appliance purchases with a minimum invoice value of <strong>₹10,000</strong> during the customer's registered birthday month:
+                </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                  <div className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                    <span className="text-[11px] font-extrabold text-gray-500 uppercase tracking-wider block">Standard Customers</span>
+                    <span className="text-base font-black text-gray-900">₹1,000 Discount</span>
+                    <span className="block text-[11px] text-gray-500 mt-0.5 font-mono">Coupon: BDAY-AJEET-1000</span>
+                    <span className="text-[10px] text-gray-400 block mt-1">Min purchase: ₹10,000</span>
+                  </div>
+                  <div className="p-3 bg-amber-50/70 rounded-xl border border-amber-300">
+                    <span className="text-[11px] font-extrabold text-amber-800 uppercase tracking-wider block">VIP Club Members</span>
+                    <span className="text-base font-black text-amber-700">₹1,500 Discount</span>
+                    <span className="block text-[11px] text-amber-900 mt-0.5 font-mono">Coupon: BDAY-VIP-1500</span>
+                    <span className="text-[10px] text-amber-700 block mt-1">Min purchase: ₹10,000</span>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 pt-1">
+                  Only one birthday discount voucher may be redeemed per customer per calendar year.
+                </p>
+              </div>
             </section>
 
             <section className="space-y-2">
@@ -253,15 +271,6 @@ export const LegalTermsScreen = () => {
               </h3>
               <p>
                 Customers earn loyalty coins with showroom purchases (typically 1 point per ₹1,000 spend) and app engagement. Points have no independent monetary or cash surrender value and can only be redeemed as instant discounts on subsequent purchases at the Obra showroom. Coins do not expire as long as the account remains active with at least one transaction every 24 months.
-              </p>
-            </section>
-
-            <section className="space-y-2">
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
-                3.4 Spin the Wheel & Lucky Draws
-              </h3>
-              <p>
-                Promotional wheel spins and lucky draws are offered as goodwill marketing promotions. Prizes (smart watches, soundbars, iron boxes, cash discount vouchers) are subject to showroom stock availability and cannot be exchanged for cash.
               </p>
             </section>
           </div>
@@ -275,17 +284,25 @@ export const LegalTermsScreen = () => {
                 4. Doorstep Delivery, Installation & Brand Warranty
               </h2>
               <p className="text-xs text-gray-500 mt-0.5">
-                Guidelines regarding transit, inspection, installation, and manufacturer warranties.
+                Official guidelines regarding showroom transport, inspection, and brand warranties.
               </p>
             </div>
 
             <section className="space-y-2">
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
-                4.1 Showroom Delivery Radius & Schedule
+                4.1 Showroom Delivery Radius & Minimum Order Amount
               </h3>
-              <p>
-                Standard showroom delivery is available across Obra, Renukoot, Anpara, Chopan, and surrounding regions in Sonbhadra district within a <strong>25 km radius</strong>. VIP members receive priority complimentary delivery. Delivery is typically executed within 24 to 48 hours of billing.
-              </p>
+              <div className="p-3.5 bg-gray-50 rounded-2xl border border-gray-200 space-y-1.5">
+                <p className="font-bold text-gray-900">
+                  Complimentary Doorstep Delivery Policy:
+                </p>
+                <ul className="list-disc pl-5 space-y-1 text-gray-700">
+                  <li><strong>Free Delivery Radius:</strong> Within <strong>10 km radius</strong> of New Ajeet Vision Showroom, Obra, Aurangabad, Bihar.</li>
+                  <li><strong>Eligibility Criterion:</strong> Applicable exclusively on purchases with a total invoice amount of <strong>more than ₹10,000 (Purchase Amount &gt; ₹10,000)</strong>.</li>
+                  <li>Orders below ₹10,000 or locations situated beyond 10 km are subject to standard nominal transportation charges agreed upon at the billing counter.</li>
+                  <li>VIP Club Members receive prioritized scheduling and delivery dispatch.</li>
+                </ul>
+              </div>
             </section>
 
             <section className="space-y-2">
@@ -367,21 +384,21 @@ export const LegalTermsScreen = () => {
               <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#E51926]">
                 5.4 Grievance Officer & Contact Information
               </h3>
-              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs space-y-2">
+              <div className="p-4 bg-gray-50 rounded-2xl border border-gray-200 text-xs space-y-2.5">
                 <p className="font-bold text-gray-900">
                   In compliance with the Information Technology Act, 2000 and rules made thereunder:
                 </p>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <MapPin className="w-3.5 h-3.5 text-[#E51926] flex-shrink-0" />
-                  <span>New Ajeet Vision, Main Market, Obra, Sonbhadra, Uttar Pradesh 231219</span>
+                <div className="flex items-start gap-2 text-gray-700">
+                  <MapPin className="w-4 h-4 text-[#E51926] flex-shrink-0 mt-0.5" />
+                  <span><strong>Showroom Address:</strong> Main Market, Obra, Aurangabad, Bihar - 824124</span>
                 </div>
                 <div className="flex items-center gap-2 text-gray-700">
-                  <Phone className="w-3.5 h-3.5 text-emerald-600 flex-shrink-0" />
-                  <span>+91 94152 23344 / Showroom Helpline: +91 74884 92130</span>
+                  <Phone className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                  <span><strong>Phone Numbers:</strong> +91 7488492130, +91 7488475307</span>
                 </div>
-                <div className="flex items-center gap-2 text-gray-700">
-                  <Mail className="w-3.5 h-3.5 text-blue-600 flex-shrink-0" />
-                  <span>care@ajeetvision.com / grievance@ajeetvision.com</span>
+                <div className="flex items-start gap-2 text-gray-700">
+                  <Mail className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                  <span><strong>Official Emails:</strong> ajeetvisionnew@gmail.com & arbindkumarobra@gmail.com</span>
                 </div>
               </div>
             </section>
@@ -394,7 +411,7 @@ export const LegalTermsScreen = () => {
         <div>
           <h4 className="text-xs sm:text-sm font-bold text-white">Have Questions About Our Terms?</h4>
           <p className="text-[11px] text-gray-400 mt-0.5">
-            Visit our Obra showroom or speak with our customer care representative.
+            Visit our Obra showroom or call +91 7488492130 / +91 7488475307.
           </p>
         </div>
         <button

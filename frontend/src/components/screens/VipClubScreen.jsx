@@ -130,7 +130,8 @@ export const VipClubScreen = () => {
             <div className="mt-3 p-4 bg-gray-50 rounded-2xl border border-gray-100 text-left text-[11px] text-gray-600 space-y-2">
               <p>• Membership valid for 365 days from date of purchase.</p>
               <p>• Discounts applicable across TV, Refrigerators, AC, Washing Machines and all major appliances.</p>
-              <p>• Free doorstep delivery eligible within 25km radius of New Ajeet Vision Showroom, Obra.</p>
+              <p>• Free doorstep delivery eligible within 10km radius of showroom on orders above ₹10,000.</p>
+              <p>• ₹1,500 birthday discount voucher (₹1,000 for regular customers) on ₹10k+ purchase.</p>
               <p>• Non-refundable and tied to your registered showroom mobile number.</p>
               <div className="pt-2 border-t border-gray-200 flex justify-between items-center">
                 <button

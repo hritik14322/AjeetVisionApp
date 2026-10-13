@@ -561,17 +561,17 @@ export const HomeScreen = () => {
       </div>
 
       {/* ---------------- F. VIP / NEW AJEET VISION CLUB BANNER ---------------- */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1C1917] via-[#2A2421] to-[#121212] text-white p-6 border border-amber-500/40 shadow-xl">
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#1C1917] via-[#2A2421] to-[#121212] text-white p-5 sm:p-6 border border-amber-500/40 shadow-xl">
         {/* Glow */}
         <div className="absolute top-0 right-0 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div className="flex items-start gap-3.5">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-black flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/20">
-              <Crown className="w-6 h-6" />
+          <div className="flex items-start gap-3 sm:gap-3.5">
+            <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-gradient-to-tr from-amber-500 to-yellow-300 text-black flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/20">
+              <Crown className="w-5 h-5 sm:w-6 sm:h-6" />
             </div>
-            <div>
-              <div className="flex items-center gap-2">
+            <div className="min-w-0">
+              <div className="flex items-center gap-2 flex-wrap">
                 <span className="text-xs font-black uppercase tracking-wider text-amber-400">
                   Exclusive Privilege
                 </span>
@@ -579,25 +579,25 @@ export const HomeScreen = () => {
                   ₹499 / Year
                 </span>
               </div>
-              <h3 className="text-lg sm:text-xl font-black text-white tracking-tight mt-0.5">
+              <h3 className="text-base sm:text-lg md:text-xl font-black text-white tracking-tight mt-0.5">
                 Join NEW AJEET VISION CLUB
               </h3>
               <p className="text-xs text-gray-300 mt-1 max-w-lg leading-relaxed">
-                Enjoy special member pricing, priority free delivery, ₹1,500 birthday gifts, and closed-door festival showroom sales.
+                Enjoy special member pricing, priority free delivery within 10km (on ₹10k+ purchases), ₹1,500 birthday vouchers (₹1,000 for regular), and festive showroom sales.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 flex-shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 w-full md:w-auto pt-1 md:pt-0">
             <button
               onClick={() => navigateTo('vip_club')}
-              className="py-2.5 px-4 bg-white/10 hover:bg-white/15 text-gray-200 text-xs font-bold rounded-xl transition"
+              className="flex-1 md:flex-none py-2.5 px-4 bg-white/10 hover:bg-white/15 text-gray-200 text-xs font-bold rounded-xl transition text-center cursor-pointer whitespace-nowrap"
             >
               View Benefits
             </button>
             <button
               onClick={() => setIsJoinVipModalOpen(true)}
-              className="py-2.5 px-5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-gray-950 text-xs font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center gap-1.5"
+              className="flex-1 md:flex-none py-2.5 px-5 bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-gray-950 text-xs font-black rounded-xl transition shadow-lg shadow-amber-500/20 flex items-center justify-center gap-1.5 cursor-pointer whitespace-nowrap"
             >
               <Crown className="w-4 h-4" />
               <span>Join Now</span>

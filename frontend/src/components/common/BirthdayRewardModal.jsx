@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
-import { X, Gift, Sparkles, Copy, Check, Cake, Calendar, Loader2, Lock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { X, Gift, Sparkles, Copy, Check, Cake, Calendar, Loader2, Lock, ShieldCheck, AlertCircle, Crown } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { apiService } from '../../services/api';
 
 export const BirthdayRewardModal = () => {
-  const { isBirthdayModalOpen, setIsBirthdayModalOpen, currentUser, setCurrentUser, showToast, syncCustomerFromDb } = useApp();
+  const { isBirthdayModalOpen, setIsBirthdayModalOpen, currentUser, setCurrentUser, showToast, syncCustomerFromDb, setIsJoinVipModalOpen } = useApp();
   const [copied, setCopied] = useState(false);
   const [birthdayDate, setBirthdayDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -13,6 +13,9 @@ export const BirthdayRewardModal = () => {
 
   const existingDob = currentUser?.dob || currentUser?.birthday;
   const hasBirthday = Boolean(existingDob);
+  const isVip = Boolean(currentUser?.isVipMember);
+  const discountAmount = isVip ? 1500 : 1000;
+  const couponCode = isVip ? 'BDAY-VIP-1500' : 'BDAY-AJEET-1000';
 
   useEffect(() => {
     if (existingDob) {
@@ -29,12 +32,10 @@ export const BirthdayRewardModal = () => {
 
   if (!isBirthdayModalOpen) return null;
 
-  const couponCode = 'BDAY-AJEET-1500';
-
   const handleCopy = () => {
     navigator.clipboard.writeText(couponCode);
     setCopied(true);
-    showToast('Birthday Coupon copied to clipboard!', 'success');
+    showToast(`Birthday Coupon (${couponCode}) copied!`, 'success');
     try {
       confetti({ particleCount: 70, spread: 60 });
     } catch (e) {}
@@ -79,7 +80,7 @@ export const BirthdayRewardModal = () => {
       try {
         confetti({ particleCount: 90, spread: 70, origin: { y: 0.6 } });
       } catch (e) {}
-      showToast('🎉 Birthday Saved & Permanently Locked! Special Discount Unlocked.', 'success');
+      showToast(`🎉 Birthday Saved & Locked! ₹${discountAmount} Discount Unlocked.`, 'success');
     } catch (err) {
       showToast(err.message || 'Failed to save birthday', 'error');
     } finally {
@@ -98,23 +99,37 @@ export const BirthdayRewardModal = () => {
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header with festive gradient */}
-        <div className="relative bg-gradient-to-br from-rose-500 via-pink-600 to-[#E51926] p-6 text-white">
+        <div className={`relative p-6 text-white ${isVip ? 'bg-gradient-to-br from-[#1C1917] via-[#2A2421] to-[#121212] border-b border-amber-500/30' : 'bg-gradient-to-br from-rose-500 via-pink-600 to-[#E51926]'}`}>
           <button
             onClick={() => setIsBirthdayModalOpen(false)}
             className="absolute top-4 right-4 p-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
-          <div className="w-14 h-14 mx-auto mb-2 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-xs shadow-inner">
-            <Cake className="w-8 h-8 text-yellow-300" />
+          
+          <div className={`w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center shadow-md ${isVip ? 'bg-gradient-to-tr from-amber-500 to-yellow-300 text-black shadow-amber-500/20' : 'bg-white/20 text-yellow-300 backdrop-blur-xs shadow-inner'}`}>
+            {isVip ? <Crown className="w-8 h-8 text-black" /> : <Cake className="w-8 h-8 text-yellow-300" />}
           </div>
-          <h3 className="text-xl font-black tracking-tight">Birthday Special Discount 🎂</h3>
-          <p className="text-xs text-rose-100 mt-1">Exclusive Customer Privilege • New Ajeet Vision</p>
+
+          <div className="flex items-center justify-center gap-1.5">
+            <span className={`text-[10px] font-extrabold uppercase tracking-widest ${isVip ? 'text-amber-400' : 'text-rose-100'}`}>
+              {isVip ? 'VIP Privilege Reward' : 'Customer Birthday Reward'}
+            </span>
+          </div>
+
+          <h3 className="text-xl font-black tracking-tight text-white mt-0.5">
+            Birthday ₹{discountAmount} Discount 🎂
+          </h3>
+          <p className="text-xs text-white/80 mt-0.5">New Ajeet Vision, Obra, Bihar</p>
         </div>
 
-        <div className="p-6 space-y-4">
+        <div className="p-5 sm:p-6 space-y-4">
           <p className="text-xs text-gray-600 leading-relaxed">
-            Register your birthday to unlock an exclusive <strong>₹1,500 Birthday Voucher</strong> on appliances, TVs & electronics!
+            {isVip ? (
+              <>As a verified VIP member, you get an exclusive <strong>₹1,500 Birthday Discount</strong> on electronics & appliances!</>
+            ) : (
+              <>Register your birthday to unlock a <strong>₹1,000 Birthday Discount</strong> (or join VIP Club for <strong>₹1,500</strong>)!</>
+            )}
           </p>
 
           {/* Birthday Date Section */}
@@ -184,22 +199,51 @@ export const BirthdayRewardModal = () => {
           )}
 
           {/* Discount Voucher Card */}
-          <div className="p-3 bg-red-50 border-2 border-dashed border-red-300 rounded-2xl flex items-center justify-between">
+          <div className={`p-3.5 rounded-2xl flex items-center justify-between border-2 border-dashed ${isVip ? 'bg-amber-50/90 border-amber-400' : 'bg-red-50 border-red-300'}`}>
             <div className="text-left">
-              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">Birthday Special Voucher</span>
-              <span className="font-mono text-base font-extrabold text-[#E51926]">{couponCode}</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-500 font-bold uppercase tracking-wider block">
+                  {isVip ? 'VIP Member Voucher' : 'Birthday Special Voucher'}
+                </span>
+                {isVip && (
+                  <span className="px-1.5 py-0.2 bg-amber-400 text-gray-950 font-black text-[9px] rounded-sm uppercase">VIP</span>
+                )}
+              </div>
+              <div className="flex items-baseline gap-2 mt-0.5">
+                <span className={`font-mono text-base font-extrabold ${isVip ? 'text-amber-900' : 'text-[#E51926]'}`}>{couponCode}</span>
+                <span className={`text-xs font-black ${isVip ? 'text-amber-700' : 'text-[#E51926]'}`}>₹{discountAmount} OFF</span>
+              </div>
             </div>
             <button
               onClick={handleCopy}
-              className="p-2 bg-[#E51926] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer"
+              className={`p-2 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs cursor-pointer ${isVip ? 'bg-amber-600 hover:bg-amber-700' : 'bg-[#E51926] hover:bg-red-700'}`}
             >
               {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
               <span>{copied ? 'Copied' : 'Copy'}</span>
             </button>
           </div>
 
+          {!isVip && (
+            <div className="p-2.5 bg-amber-50 border border-amber-200 rounded-xl text-left flex items-center justify-between gap-2">
+              <div className="flex items-center gap-1.5 text-[11px] text-amber-900 font-medium">
+                <Crown className="w-3.5 h-3.5 text-amber-600 flex-shrink-0" />
+                <span>Upgrade to VIP for <strong>₹1,500 OFF</strong> on birthday!</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setIsBirthdayModalOpen(false);
+                  setIsJoinVipModalOpen(true);
+                }}
+                className="text-[10.5px] font-bold text-amber-900 bg-amber-200/80 hover:bg-amber-300 px-2 py-1 rounded-lg transition whitespace-nowrap cursor-pointer"
+              >
+                Join VIP →
+              </button>
+            </div>
+          )}
+
           <p className="text-[11px] text-gray-400">
-            Valid on minimum purchase of ₹10,000 at New Ajeet Vision Obra billing counter.
+            Valid on minimum purchase of ₹10,000 at New Ajeet Vision, Obra billing counter.
           </p>
 
           <button
