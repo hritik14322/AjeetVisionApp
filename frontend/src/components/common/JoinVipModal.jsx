@@ -19,7 +19,7 @@ const loadRazorpayScript = () => {
 };
 
 export const JoinVipModal = () => {
-  const { isJoinVipModalOpen, setIsJoinVipModalOpen, currentUser, setCurrentUser, showToast, syncCustomerFromDb } = useApp();
+  const { isJoinVipModalOpen, setIsJoinVipModalOpen, currentUser, setCurrentUser, showToast, syncCustomerFromDb, navigateTo } = useApp();
   const [loading, setLoading] = useState(false);
   const [checkingStatus, setCheckingStatus] = useState(false);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
@@ -261,23 +261,39 @@ export const JoinVipModal = () => {
     }
   };
 
-  const handleClose = () => {
+  const handleClose = (e) => {
+    e?.stopPropagation?.();
     if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     setIsJoinVipModalOpen(false);
     setJoinedSuccess(false);
   };
 
+  const handleExploreBenefits = (e) => {
+    e?.preventDefault?.();
+    e?.stopPropagation?.();
+    if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+    setIsJoinVipModalOpen(false);
+    setJoinedSuccess(false);
+    if (navigateTo) {
+      navigateTo('vip_club');
+    }
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-xs cursor-pointer"
+      onClick={handleClose}
+    >
       <div 
-        className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200"
+        className="bg-white w-full max-w-md rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh] animate-in fade-in zoom-in-95 duration-200 cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Gold Luxury Header */}
         <div className="relative bg-gradient-to-br from-[#1C1917] via-[#292524] to-[#121212] p-6 text-white text-center border-b border-amber-500/30">
           <button
+            type="button"
             onClick={handleClose}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition"
+            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
@@ -311,10 +327,12 @@ export const JoinVipModal = () => {
               Valid for 365 Days • Active on {new Date(currentUser?.vipMembership?.createdAt || currentUser?.vipActivationDate || Date.now()).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
             </div>
             <button
-              onClick={handleClose}
-              className="w-full py-3 bg-[#E51926] hover:bg-red-700 text-white rounded-xl text-xs font-bold transition shadow-sm cursor-pointer"
+              type="button"
+              onClick={handleExploreBenefits}
+              className="w-full py-3.5 bg-[#E51926] hover:bg-red-700 active:scale-[0.98] text-white rounded-xl text-xs sm:text-sm font-bold transition shadow-md shadow-red-500/20 cursor-pointer flex items-center justify-center gap-1.5"
             >
-              Explore VIP Member Benefits
+              <span>Explore VIP Member Benefits</span>
+              <ArrowRight className="w-4 h-4" />
             </button>
           </div>
         ) : (
