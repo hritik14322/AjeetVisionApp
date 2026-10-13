@@ -4,8 +4,23 @@ import { X, Crown, CheckCircle2, Sparkles, Shield, ArrowRight } from 'lucide-rea
 import { apiService } from '../../services/api';
 import confetti from 'canvas-confetti';
 
+const loadRazorpayScript = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.async = true;
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
+
 export const JoinVipModal = () => {
-  const { isJoinVipModalOpen, setIsJoinVipModalOpen, setCurrentUser, showToast } = useApp();
+  const { isJoinVipModalOpen, setIsJoinVipModalOpen, currentUser, setCurrentUser, showToast } = useApp();
   const [loading, setLoading] = useState(false);
   const [joinedSuccess, setJoinedSuccess] = useState(false);
 
@@ -15,102 +30,93 @@ export const JoinVipModal = () => {
     try {
       setLoading(true);
 
-      // 1. Request order from backend Razorpay API
-      let orderData = null;
-      try {
-        const orderRes = await fetch('/api/vip/create-order', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: currentUser?.email || '',
-            customerId: currentUser?._id || currentUser?.id || '',
-          }),
-        });
-        if (orderRes.ok) {
-          orderData = await orderRes.json();
-        }
-      } catch (e) {
-        console.warn('Razorpay order call note:', e);
+      // 1. Ensure Razorpay checkout script is loaded
+      const isLoaded = await loadRazorpayScript();
+      if (!isLoaded || !window.Razorpay) {
+        throw new Error('Razorpay gateway could not be loaded. Please check your network.');
       }
 
-      // 2. If Razorpay checkout is available, open checkout window
-      if (orderData?.orderId && window.Razorpay) {
-        const options = {
-          key: orderData.keyId,
-          amount: orderData.amount,
-          currency: orderData.currency || 'INR',
-          name: 'New Ajeet Vision',
-          description: 'VIP Club Membership (1 Year)',
-          image: '/nav-logo.png',
-          order_id: orderData.orderId,
-          prefill: {
-            name: currentUser?.name || '',
-            email: currentUser?.email || '',
-            contact: (currentUser?.mobile || '').replace(/\D/g, '').slice(-10),
-          },
-          theme: {
-            color: '#E51926',
-          },
-          handler: async (response) => {
-            try {
-              setLoading(true);
-              await fetch('/api/vip/verify-payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                  razorpay_order_id: response.razorpay_order_id,
-                  razorpay_payment_id: response.razorpay_payment_id,
-                  razorpay_signature: response.razorpay_signature,
-                  email: currentUser?.email,
-                  customerId: currentUser?._id || currentUser?.id,
-                }),
-              });
+      // 2. Request order from backend Razorpay API
+      const orderRes = await fetch('/api/vip/create-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: currentUser?.email || '',
+          customerId: currentUser?._id || currentUser?.id || '',
+        }),
+      });
 
-              const res = await apiService.joinVipClub();
-              setCurrentUser({ ...res.user, isVipMember: true });
-              setJoinedSuccess(true);
-              showToast('🎉 VIP Membership Activated Successfully!', 'success');
-              try {
-                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
-              } catch (e) {}
-            } catch (err) {
-              showToast(err.message || 'Verification failed', 'error');
-            } finally {
-              setLoading(false);
+      const orderData = await orderRes.json();
+      if (!orderRes.ok || !orderData.orderId) {
+        throw new Error(orderData.message || 'Failed to create payment order. Please try again.');
+      }
+
+      // 3. Open official Razorpay Checkout window branded as New Ajeet Vision
+      const options = {
+        key: orderData.keyId,
+        amount: orderData.amount,
+        currency: orderData.currency || 'INR',
+        name: 'New Ajeet Vision',
+        description: 'VIP Club Membership (1 Year)',
+        image: '/nav-logo.png',
+        order_id: orderData.orderId,
+        prefill: {
+          name: currentUser?.name || '',
+          email: currentUser?.email || '',
+          contact: (currentUser?.mobile || '').replace(/\D/g, '').slice(-10),
+        },
+        theme: {
+          color: '#E51926',
+        },
+        handler: async (response) => {
+          try {
+            setLoading(true);
+            const verifyRes = await fetch('/api/vip/verify-payment', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                email: currentUser?.email,
+                customerId: currentUser?._id || currentUser?.id,
+              }),
+            });
+
+            const verifyData = await verifyRes.json();
+            if (!verifyRes.ok) {
+              throw new Error(verifyData.message || 'Payment signature verification failed.');
             }
-          },
-          modal: {
-            ondismiss: () => {
-              setLoading(false);
-            },
-          },
-        };
 
-        const rzp = new window.Razorpay(options);
-        rzp.on('payment.failed', function (response) {
-          showToast(response.error?.description || 'Payment Failed', 'error');
-          setLoading(false);
-        });
-        rzp.open();
-        return;
-      }
+            const updated = { ...currentUser, isVipMember: true };
+            setCurrentUser(updated);
+            localStorage.setItem('nav_user_profile', JSON.stringify(updated));
+            setJoinedSuccess(true);
+            showToast('🎉 VIP Membership Activated Successfully!', 'success');
+            try {
+              confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+            } catch (e) {}
+          } catch (err) {
+            showToast(err.message || 'Payment verification failed', 'error');
+          } finally {
+            setLoading(false);
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            setLoading(false);
+          },
+        },
+      };
 
-      // Fallback direct activation
-      const res = await apiService.joinVipClub();
-      setCurrentUser(res.user);
-      setJoinedSuccess(true);
-      showToast('🎉 Welcome to New Ajeet Vision Club VIP!', 'success');
-      
-      try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-      } catch (e) {}
+      const rzp = new window.Razorpay(options);
+      rzp.on('payment.failed', function (response) {
+        showToast(response.error?.description || 'Payment Failed', 'error');
+        setLoading(false);
+      });
+      rzp.open();
     } catch (err) {
-      showToast(err.message || 'Error joining VIP Club', 'error');
-    } finally {
+      showToast(err.message || 'Error starting payment', 'error');
       setLoading(false);
     }
   };
