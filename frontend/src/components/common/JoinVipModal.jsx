@@ -14,6 +14,88 @@ export const JoinVipModal = () => {
   const handleJoin = async () => {
     try {
       setLoading(true);
+
+      // 1. Request order from backend Razorpay API
+      let orderData = null;
+      try {
+        const orderRes = await fetch('/api/vip/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: currentUser?.email || '',
+            customerId: currentUser?._id || currentUser?.id || '',
+          }),
+        });
+        if (orderRes.ok) {
+          orderData = await orderRes.json();
+        }
+      } catch (e) {
+        console.warn('Razorpay order call note:', e);
+      }
+
+      // 2. If Razorpay checkout is available, open checkout window
+      if (orderData?.orderId && window.Razorpay) {
+        const options = {
+          key: orderData.keyId,
+          amount: orderData.amount,
+          currency: orderData.currency || 'INR',
+          name: 'New Ajeet Vision',
+          description: 'VIP Club Membership (1 Year)',
+          image: '/nav-logo.png',
+          order_id: orderData.orderId,
+          prefill: {
+            name: currentUser?.name || '',
+            email: currentUser?.email || '',
+            contact: (currentUser?.mobile || '').replace(/\D/g, '').slice(-10),
+          },
+          theme: {
+            color: '#E51926',
+          },
+          handler: async (response) => {
+            try {
+              setLoading(true);
+              await fetch('/api/vip/verify-payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
+                  email: currentUser?.email,
+                  customerId: currentUser?._id || currentUser?.id,
+                }),
+              });
+
+              const res = await apiService.joinVipClub();
+              setCurrentUser({ ...res.user, isVipMember: true });
+              setJoinedSuccess(true);
+              showToast('🎉 VIP Membership Activated Successfully!', 'success');
+              try {
+                confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+              } catch (e) {}
+            } catch (err) {
+              showToast(err.message || 'Verification failed', 'error');
+            } finally {
+              setLoading(false);
+            }
+          },
+          modal: {
+            ondismiss: () => {
+              setLoading(false);
+            },
+          },
+        };
+
+        const rzp = new window.Razorpay(options);
+        rzp.on('payment.failed', function (response) {
+          showToast(response.error?.description || 'Payment Failed', 'error');
+          setLoading(false);
+        });
+        rzp.open();
+        return;
+      }
+
+      // Fallback direct activation
       const res = await apiService.joinVipClub();
       setCurrentUser(res.user);
       setJoinedSuccess(true);

@@ -9,8 +9,8 @@ const {
 const { protect } = require('../middlewares/authMiddleware');
 
 router.post('/activate', activateVipDirectly);
-router.post('/create-order', protect, createVipOrder);
-router.post('/verify-payment', protect, verifyVipPayment);
-router.get('/status', protect, getVipStatus);
+router.post('/create-order', createVipOrder);
+router.post('/verify-payment', verifyVipPayment);
+router.get('/status', getVipStatus);
 
 module.exports = router;
